@@ -1,0 +1,46 @@
+{
+  "name": "Story",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "The ID of the user who created the story."
+    },
+    "media_url": {
+      "type": "string",
+      "description": "URL of the story image or video."
+    },
+    "media_type": {
+      "type": "string",
+      "enum": [
+        "image",
+        "video"
+      ],
+      "default": "image",
+      "description": "Type of media in the story."
+    },
+    "views": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of views this story has received."
+    },
+    "category": {
+      "type": "string",
+      "description": "Category of the story (e.g., Photography, Tech, Art)."
+    },
+    "is_live": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is a live story."
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the story expires (typically 24 hours after creation)."
+    }
+  },
+  "required": [
+    "user_id",
+    "media_url"
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "name": "Media",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "The ID of the user who uploaded the media."
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL of the uploaded media file."
+    },
+    "file_type": {
+      "type": "string",
+      "enum": [
+        "image",
+        "video",
+        "audio",
+        "document"
+      ],
+      "description": "Type of the media file."
+    },
+    "file_name": {
+      "type": "string",
+      "description": "Original filename of the uploaded media."
+    },
+    "file_size": {
+      "type": "integer",
+      "description": "File size in bytes."
+    },
+    "folder": {
+      "type": "string",
+      "description": "Folder or category where the media is stored.",
+      "default": "uploads"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "post",
+        "story",
+        "reel",
+        "upload"
+      ],
+      "description": "Where this media originated from."
+    },
+    "source_id": {
+      "type": "string",
+      "description": "ID of the post, story, or reel this media is associated with."
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags for organizing media.",
+      "default": []
+    }
+  },
+  "required": [
+    "user_id",
+    "file_url",
+    "file_type"
+  ]
+}

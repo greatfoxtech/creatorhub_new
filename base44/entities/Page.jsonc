@@ -1,0 +1,47 @@
+{
+  "name": "Page",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "The ID of the user this page belongs to."
+    },
+    "title": {
+      "type": "string",
+      "description": "The title of the page."
+    },
+    "slug": {
+      "type": "string",
+      "description": "The URL slug for this page (e.g., 'about', 'contact'). Home page slug is typically 'home'."
+    },
+    "is_published": {
+      "type": "boolean",
+      "default": false
+    },
+    "content": {
+      "type": "array",
+      "description": "The JSON-based layout of blocks for this page.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "content": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "default": []
+    }
+  },
+  "required": [
+    "user_id",
+    "title",
+    "slug"
+  ]
+}

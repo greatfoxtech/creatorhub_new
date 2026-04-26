@@ -1,0 +1,38 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "bio": {
+      "type": "string",
+      "description": "A short user biography."
+    },
+    "profile_picture_url": {
+      "type": "string",
+      "description": "URL for the user's profile picture."
+    },
+    "cover_image_url": {
+      "type": "string",
+      "description": "URL for the user's profile cover image."
+    },
+    "plan": {
+      "type": "string",
+      "enum": [
+        "free",
+        "pro",
+        "enterprise"
+      ],
+      "default": "free",
+      "description": "The user's subscription plan."
+    },
+    "profile_slug": {
+      "type": "string",
+      "description": "The unique slug for the user's profile page, e.g., 'username'."
+    }
+  },
+  "required": [
+    "bio",
+    "profile_picture_url",
+    "cover_image_url",
+    "profile_slug"
+  ]
+}

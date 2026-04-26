@@ -1,0 +1,44 @@
+{
+  "name": "Post",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "The ID of the user who created the post."
+    },
+    "content": {
+      "type": "string",
+      "description": "The main text content of the post."
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "text",
+        "image",
+        "video"
+      ],
+      "default": "text",
+      "description": "The type of the post."
+    },
+    "media_url": {
+      "type": "string",
+      "description": "URL for the image or video if the post type is not text."
+    },
+    "likes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "An array of user IDs who liked the post.",
+      "default": []
+    },
+    "comments_count": {
+      "type": "integer",
+      "default": 0
+    }
+  },
+  "required": [
+    "user_id",
+    "content"
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "name": "Reel",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "The ID of the user who created the reel."
+    },
+    "video_url": {
+      "type": "string",
+      "description": "URL of the reel video."
+    },
+    "thumbnail_url": {
+      "type": "string",
+      "description": "Thumbnail image URL for the reel."
+    },
+    "caption": {
+      "type": "string",
+      "description": "Caption or description of the reel."
+    },
+    "duration_seconds": {
+      "type": "integer",
+      "description": "Duration of the reel in seconds."
+    },
+    "hashtags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Hashtags associated with the reel.",
+      "default": []
+    },
+    "views": {
+      "type": "integer",
+      "default": 0
+    },
+    "likes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of user IDs who liked the reel.",
+      "default": []
+    },
+    "comments_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "shares_count": {
+      "type": "integer",
+      "default": 0
+    }
+  },
+  "required": [
+    "user_id",
+    "video_url"
+  ]
+}
