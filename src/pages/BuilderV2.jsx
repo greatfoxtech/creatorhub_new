@@ -828,7 +828,6 @@ export default function BuilderV2() {
     snapToGrid: true,
   });
   const [lastSaved, setLastSaved] = useState(null);
-  const [isDragging, setIsDragging] = useState(false);
   
   // Pages management - Canvas pages for editing
   const [pages, setPages] = useState([
@@ -933,7 +932,6 @@ export default function BuilderV2() {
   React.useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        setIsDragging(false);
         setSelectedElement(null);
       }
       // Delete key - delete selected element
@@ -947,57 +945,20 @@ export default function BuilderV2() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedElement]);
 
-  // Handle drag start
-  const handleDragStart = () => {
-    setIsDragging(true);
-  };
-
   // Handle drag end with nested container support
   const handleDragEnd = (result) => {
-    setIsDragging(false);
+    if (!result.destination) return;
 
-    if (!result.destination) {
-      return;
-    }
-
-    if (result.source.droppableId === result.destination.droppableId && 
-        result.source.index === result.destination.index) {
-      return;
-    }
+    if (
+      result.source.droppableId === result.destination.droppableId &&
+      result.source.index === result.destination.index
+    ) return;
 
     const { source, destination, draggableId } = result;
-
-    // Parse zones
     const sourceZone = parseDroppableId(source.droppableId);
     const destZone = parseDroppableId(destination.droppableId);
 
-    // Filter valid root elements
-    const validElements = elements.filter(el => el && el.id);
-
-    const itemType = draggableId.includes('element-') 
-      ? (findElementById(validElements, draggableId)?.element?.type || draggableId)
-      : draggableId;
-
-    // --- Special Handling for Header/Footer (Lock to Top/Bottom) ---
-    if (itemType === 'Header' || itemType === 'Footer') {
-        if (source.droppableId.startsWith('library-')) {
-            setElements(prev => {
-                const filtered = prev.filter(e => e.type !== itemType);
-                const newElement = {
-                    id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                    type: itemType,
-                    props: getDefaultProps(itemType),
-                };
-
-                if (itemType === 'Header') return [newElement, ...filtered];
-                if (itemType === 'Footer') return [...filtered, newElement];
-                return filtered;
-            });
-        }
-        return;
-    }
-
-    // --- Handle Adding from Library ---
+    // --- Adding from Library ---
     if (source.droppableId.startsWith('library-')) {
       const newElement = {
         id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -1005,50 +966,51 @@ export default function BuilderV2() {
         props: getDefaultProps(draggableId),
       };
 
-      // Separate header/footer from body
-      const currentHeader = validElements.find(e => e.type === 'Header');
-      const currentFooter = validElements.find(e => e.type === 'Footer');
-      const bodyElements = validElements.filter(e => e.type !== 'Header' && e.type !== 'Footer');
+      setElements(prev => {
+        const valid = prev.filter(el => el && el.id);
 
-      // Insert into destination
-      const newBody = insertElementIntoZone(bodyElements, destZone, destination.index, newElement);
+        // Special case: Header/Footer lock to top/bottom
+        if (draggableId === 'Header' || draggableId === 'Footer') {
+          const filtered = valid.filter(e => e.type !== draggableId);
+          if (draggableId === 'Header') return [newElement, ...filtered];
+          return [...filtered, newElement];
+        }
 
-      // Reconstruct
-      const newElements = [];
-      if (currentHeader) newElements.push(currentHeader);
-      newElements.push(...newBody);
-      if (currentFooter) newElements.push(currentFooter);
+        const header = valid.find(e => e.type === 'Header');
+        const footer = valid.find(e => e.type === 'Footer');
+        const body = valid.filter(e => e.type !== 'Header' && e.type !== 'Footer');
+        const newBody = insertElementIntoZone(body, destZone, destination.index, newElement);
 
-      setElements(newElements);
+        return [
+          ...(header ? [header] : []),
+          ...newBody,
+          ...(footer ? [footer] : []),
+        ];
+      });
+
       setSelectedElement(newElement);
       return;
     }
 
-    // --- Handle Moving Existing Elements ---
+    // --- Moving Existing Elements ---
+    setElements(prev => {
+      const valid = prev.filter(el => el && el.id);
+      const header = valid.find(e => e.type === 'Header');
+      const footer = valid.find(e => e.type === 'Footer');
+      const body = valid.filter(e => e.type !== 'Header' && e.type !== 'Footer');
 
-    // Separate header/footer from body
-    const currentHeader = validElements.find(e => e.type === 'Header');
-    const currentFooter = validElements.find(e => e.type === 'Footer');
-    const bodyElements = validElements.filter(e => e.type !== 'Header' && e.type !== 'Footer');
+      const { tree: bodyAfterRemove, removed } = removeElementById(body, draggableId);
+      if (!removed) return prev;
 
-    // Remove from source
-    const { tree: bodyAfterRemove, removed } = removeElementById(bodyElements, draggableId);
+      const newBody = insertElementIntoZone(bodyAfterRemove, destZone, destination.index, removed);
 
-    if (!removed) {
-      return;
-    }
-
-    // Insert into destination
-    const newBody = insertElementIntoZone(bodyAfterRemove, destZone, destination.index, removed);
-
-    // Reconstruct
-    const newElements = [];
-    if (currentHeader) newElements.push(currentHeader);
-    newElements.push(...newBody);
-    if (currentFooter) newElements.push(currentFooter);
-
-    setElements(newElements);
-    };
+      return [
+        ...(header ? [header] : []),
+        ...newBody,
+        ...(footer ? [footer] : []),
+      ];
+    });
+  };
 
   const updateElementProps = (elementId, newProps) => {
     // Recursive update helper
@@ -1496,7 +1458,7 @@ export default function BuilderV2() {
       </Dialog>
 
       {/* Main Content */}
-      <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <DragDropContext onDragEnd={handleDragEnd}>
         <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
           {selectedElement ? (
             <PropertiesPanelV2
