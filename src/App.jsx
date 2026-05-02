@@ -2,10 +2,10 @@ import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Outlet, useLocation } from 'react-router-dom';
-import Layout from '@/layout';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import AppLayout from './components/AppLayout';
 import Home from './pages/Home';
 import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
@@ -44,15 +44,11 @@ import ProfileBuilderV2 from './pages/ProfileBuilderV2';
 import BuilderV2 from './pages/BuilderV2';
 // Add page imports here
 
-const LayoutWrapper = () => {
-  const location = useLocation();
-  const pageName = location.pathname.replace('/', '') || 'Home';
-  return (
-    <Layout currentPageName={pageName}>
-      <Outlet />
-    </Layout>
-  );
-};
+const LayoutWrapper = () => (
+  <AppLayout>
+    <Outlet />
+  </AppLayout>
+);
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
