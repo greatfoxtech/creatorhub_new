@@ -1,7 +1,8 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Outlet, useLocation } from 'react-router-dom';
+import Layout from '@/layout';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -43,6 +44,16 @@ import ProfileBuilderV2 from './pages/ProfileBuilderV2';
 import BuilderV2 from './pages/BuilderV2';
 // Add page imports here
 
+const LayoutWrapper = () => {
+  const location = useLocation();
+  const pageName = location.pathname.replace('/', '') || 'Home';
+  return (
+    <Layout currentPageName={pageName}>
+      <Outlet />
+    </Layout>
+  );
+};
+
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
@@ -72,40 +83,46 @@ const AuthenticatedApp = () => {
       <Route path="/" element={<Home />} />
       <Route path="/Home" element={<Home />} />
       <Route path="/Auth" element={<Auth />} />
-      <Route path="/Dashboard" element={<Dashboard />} />
+      {/* Fullscreen pages — no layout wrapper */}
       <Route path="/ProfileBuilder" element={<ProfileBuilder />} />
-      <Route path="/Pages" element={<Pages />} />
-      <Route path="/Feed" element={<Feed />} />
-      <Route path="/Stories" element={<Stories />} />
-      <Route path="/Reels" element={<Reels />} />
-      <Route path="/MediaLibrary" element={<MediaLibrary />} />
-      <Route path="/Products" element={<Products />} />
-      <Route path="/Orders" element={<Orders />} />
-      <Route path="/Discounts" element={<Discounts />} />
-      <Route path="/Payments" element={<Payments />} />
-      <Route path="/Followers" element={<Followers />} />
-      <Route path="/Messages" element={<Messages />} />
-      <Route path="/Notifications" element={<Notifications />} />
-      <Route path="/SettingsProfile" element={<SettingsProfile />} />
-      <Route path="/SettingsTheme" element={<SettingsTheme />} />
-      <Route path="/SettingsBilling" element={<SettingsBilling />} />
-      <Route path="/ChoosePlan" element={<ChoosePlan />} />
-      <Route path="/ProfileView" element={<ProfileView />} />
-      <Route path="/Discovery" element={<Discovery />} />
-      <Route path="/Marketplace" element={<Marketplace />} />
-      <Route path="/Cart" element={<Cart />} />
-      <Route path="/Search" element={<Search />} />
-      <Route path="/Trending" element={<Trending />} />
-      <Route path="/Admin" element={<Admin />} />
-      <Route path="/Following" element={<Following />} />
-      <Route path="/AnalyticsOverview" element={<AnalyticsOverview />} />
-      <Route path="/AnalyticsSales" element={<AnalyticsSales />} />
-      <Route path="/AnalyticsGrowth" element={<AnalyticsGrowth />} />
-      <Route path="/SettingsIntegrations" element={<SettingsIntegrations />} />
-      <Route path="/SettingsLegal" element={<SettingsLegal />} />
-      <Route path="/SettingsSecurity" element={<SettingsSecurity />} />
-      <Route path="/ProfileBuilderV2" element={<ProfileBuilderV2 />} />
       <Route path="/BuilderV2" element={<BuilderV2 />} />
+      <Route path="/ProfileBuilderV2" element={<ProfileBuilderV2 />} />
+
+      {/* Dashboard pages — wrapped in sidebar layout */}
+      <Route element={<LayoutWrapper />}>
+        <Route path="/Dashboard" element={<Dashboard />} />
+        <Route path="/Pages" element={<Pages />} />
+        <Route path="/Feed" element={<Feed />} />
+        <Route path="/Stories" element={<Stories />} />
+        <Route path="/Reels" element={<Reels />} />
+        <Route path="/MediaLibrary" element={<MediaLibrary />} />
+        <Route path="/Products" element={<Products />} />
+        <Route path="/Orders" element={<Orders />} />
+        <Route path="/Discounts" element={<Discounts />} />
+        <Route path="/Payments" element={<Payments />} />
+        <Route path="/Followers" element={<Followers />} />
+        <Route path="/Messages" element={<Messages />} />
+        <Route path="/Notifications" element={<Notifications />} />
+        <Route path="/SettingsProfile" element={<SettingsProfile />} />
+        <Route path="/SettingsTheme" element={<SettingsTheme />} />
+        <Route path="/SettingsBilling" element={<SettingsBilling />} />
+        <Route path="/ChoosePlan" element={<ChoosePlan />} />
+        <Route path="/ProfileView" element={<ProfileView />} />
+        <Route path="/Discovery" element={<Discovery />} />
+        <Route path="/Marketplace" element={<Marketplace />} />
+        <Route path="/Cart" element={<Cart />} />
+        <Route path="/Search" element={<Search />} />
+        <Route path="/Trending" element={<Trending />} />
+        <Route path="/Admin" element={<Admin />} />
+        <Route path="/Following" element={<Following />} />
+        <Route path="/AnalyticsOverview" element={<AnalyticsOverview />} />
+        <Route path="/AnalyticsSales" element={<AnalyticsSales />} />
+        <Route path="/AnalyticsGrowth" element={<AnalyticsGrowth />} />
+        <Route path="/SettingsIntegrations" element={<SettingsIntegrations />} />
+        <Route path="/SettingsLegal" element={<SettingsLegal />} />
+        <Route path="/SettingsSecurity" element={<SettingsSecurity />} />
+      </Route>
+
       {/* Add your page Route elements here */}
       <Route path="*" element={<PageNotFound />} />
     </Routes>
