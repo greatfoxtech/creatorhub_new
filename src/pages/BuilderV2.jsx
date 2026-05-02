@@ -10,6 +10,7 @@ import ComponentLibraryV2 from '@/components/builderv2/ComponentLibraryV2';
 import PropertiesPanelV2 from '@/components/builderv2/PropertiesPanelV2';
 import CanvasV2 from '@/components/builderv2/CanvasV2';
 import PageTemplatesModal from '@/components/builderv2/PageTemplates';
+import PreviewModal from '@/components/builderv2/PreviewModal';
 import { parseDroppableId, removeElementById, insertElementIntoZone, findElementById } from '@/components/builderv2/treeUtils';
 
 // Shared droppable type constant - MUST match across all files
@@ -834,6 +835,7 @@ export default function BuilderV2() {
     snapToGrid: true,
   });
   const [lastSaved, setLastSaved] = useState(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   
   // Pages management - Canvas pages for editing
   const [pages, setPages] = useState([
@@ -1520,7 +1522,7 @@ export default function BuilderV2() {
             <Save size={16} className="mr-2" />
             {lastSaved ? `Saved ${new Date(lastSaved).toLocaleTimeString()}` : 'Save'}
           </Button>
-          <Button variant="default" size="sm" className="bg-white text-black hover:bg-gray-200">
+          <Button variant="default" size="sm" className="bg-white text-black hover:bg-gray-200" onClick={() => setPreviewOpen(true)}>
             <Eye size={16} className="mr-2" />
             Preview
           </Button>
@@ -1553,6 +1555,13 @@ export default function BuilderV2() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Preview Modal */}
+      <PreviewModal
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        elements={elements}
+      />
 
       {/* Page Templates Modal */}
       <PageTemplatesModal
