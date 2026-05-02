@@ -3,7 +3,7 @@ import { DragDropContext } from '@hello-pangea/dnd';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { ChevronLeft, Save, Eye, Monitor, Tablet, Smartphone, SquarePen, Plus, MoreVertical, Trash2 } from 'lucide-react';
+import { ChevronLeft, Save, Eye, Monitor, Tablet, Smartphone, SquarePen, Plus, MoreVertical, Trash2, Undo2, Redo2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ComponentLibraryV2 from '@/components/builderv2/ComponentLibraryV2';
@@ -818,8 +818,13 @@ const getDefaultProps = (type) => {
   return defaults[type] || { padding: 16 };
 };
 
+const MAX_HISTORY = 50;
+
 export default function BuilderV2() {
   const [elements, setElements] = useState([]);
+  const [history, setHistory] = useState([[]]);   // stack of elements snapshots
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const skipHistoryRef = React.useRef(false);       // flag to skip recording during undo/redo
   const [selectedElement, setSelectedElement] = useState(null);
   const [deviceView, setDeviceView] = useState('desktop');
   const [canvasSettings, setCanvasSettings] = useState({
@@ -876,6 +881,45 @@ export default function BuilderV2() {
     
     return result.length > 0 ? result : pages;
   }, [elements, pages]);
+
+  // Record undo history whenever elements change (skip during undo/redo)
+  React.useEffect(() => {
+    if (skipHistoryRef.current) {
+      skipHistoryRef.current = false;
+      return;
+    }
+    setHistory(prev => {
+      const truncated = prev.slice(0, historyIndex + 1);
+      const next = [...truncated, elements].slice(-MAX_HISTORY);
+      return next;
+    });
+    setHistoryIndex(prev => Math.min(prev + 1, MAX_HISTORY - 1));
+  }, [elements]);
+
+  const undo = () => {
+    setHistory(prev => {
+      const newIndex = Math.max(historyIndex - 1, 0);
+      if (newIndex === historyIndex) return prev;
+      skipHistoryRef.current = true;
+      setElements(prev[newIndex]);
+      setHistoryIndex(newIndex);
+      return prev;
+    });
+  };
+
+  const redo = () => {
+    setHistory(prev => {
+      const newIndex = Math.min(historyIndex + 1, prev.length - 1);
+      if (newIndex === historyIndex) return prev;
+      skipHistoryRef.current = true;
+      setElements(prev[newIndex]);
+      setHistoryIndex(newIndex);
+      return prev;
+    });
+  };
+
+  const canUndo = historyIndex > 0;
+  const canRedo = historyIndex < history.length - 1;
 
   // Load from localStorage on mount
   React.useEffect(() => {
@@ -939,11 +983,21 @@ export default function BuilderV2() {
         e.preventDefault();
         forceDeleteSelected();
       }
+      // Undo: Ctrl+Z
+      if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.target.matches('input, textarea')) {
+        e.preventDefault();
+        undo();
+      }
+      // Redo: Ctrl+Y or Ctrl+Shift+Z
+      if (((e.key === 'y' && (e.ctrlKey || e.metaKey)) || (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) && !e.target.matches('input, textarea')) {
+        e.preventDefault();
+        redo();
+      }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedElement]);
+  }, [selectedElement, historyIndex, history]);
 
   // Handle drag end with nested container support
   const handleDragEnd = (result) => {
@@ -1413,6 +1467,30 @@ export default function BuilderV2() {
             <DeviceButton icon={Smartphone} type="mobile" label="Mobile" />
           </div>
           
+          {/* Undo / Redo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', paddingRight: '12px', borderRight: '1px solid rgba(255,255,255,0.1)' }}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={undo}
+              disabled={!canUndo}
+              title="Undo (Ctrl+Z)"
+              className="text-gray-400 hover:text-white disabled:opacity-30"
+            >
+              <Undo2 size={16} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={redo}
+              disabled={!canRedo}
+              title="Redo (Ctrl+Y)"
+              className="text-gray-400 hover:text-white disabled:opacity-30"
+            >
+              <Redo2 size={16} />
+            </Button>
+          </div>
+
           <Button 
             variant="outline" 
             size="sm" 
