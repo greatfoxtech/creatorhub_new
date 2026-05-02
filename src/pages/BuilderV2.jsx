@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import ComponentLibraryV2 from '@/components/builderv2/ComponentLibraryV2';
 import PropertiesPanelV2 from '@/components/builderv2/PropertiesPanelV2';
 import CanvasV2 from '@/components/builderv2/CanvasV2';
+import PageTemplatesModal from '@/components/builderv2/PageTemplates';
 import { parseDroppableId, removeElementById, insertElementIntoZone, findElementById } from '@/components/builderv2/treeUtils';
 
 // Shared droppable type constant - MUST match across all files
@@ -840,6 +841,8 @@ export default function BuilderV2() {
   ]);
   const [activePageId, setActivePageId] = useState('home');
   const [deleteConfirmPageId, setDeleteConfirmPageId] = useState(null);
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const pendingNewPageRef = React.useRef(null); // holds newPage before template is chosen
   
   // Derived page list from Header element (single source of truth)
   const derivedPages = React.useMemo(() => {
@@ -1200,34 +1203,50 @@ export default function BuilderV2() {
       .filter(Boolean)
       .map(match => parseInt(match[1]));
     const nextNumber = pageNumbers.length > 0 ? Math.max(...pageNumbers) + 1 : 1;
-    
+
     const newPage = {
       id: `page-${Date.now()}`,
       name: `Page ${nextNumber}`,
       slug: `page-${nextNumber}`,
       canvasJson: [],
     };
-    
-    // Save current page before switching
-    const updatedPages = pages.map(page => 
+
+    // Save current page first
+    const updatedPages = pages.map(page =>
       page.id === activePageId ? { ...page, canvasJson: elements } : page
     );
-    const newPages = [...updatedPages, newPage];
-    
+    setPages([...updatedPages, newPage]);
+
+    // Store pending page and open template picker
+    pendingNewPageRef.current = { newPage, updatedPages };
+    setTemplateModalOpen(true);
+  };
+
+  const handleApplyTemplate = (template) => {
+    if (!pendingNewPageRef.current) return;
+    const { newPage, updatedPages } = pendingNewPageRef.current;
+    pendingNewPageRef.current = null;
+
+    const templateElements = template ? template.build() : [];
+    const finalPage = { ...newPage, canvasJson: templateElements };
+    const newPages = [...updatedPages, finalPage];
+
     setPages(newPages);
-    setElements([]);
+    setElements(templateElements);
     setActivePageId(newPage.id);
     setSelectedElement(null);
-    
-    // Save to localStorage
-    const data = {
-      pages: newPages,
-      activePageId: newPage.id,
-      canvasSettings,
-      timestamp: Date.now(),
-    };
+
+    const data = { pages: newPages, activePageId: newPage.id, canvasSettings, timestamp: Date.now() };
     localStorage.setItem('builderv2-pages', JSON.stringify(data));
     setLastSaved(Date.now());
+  };
+
+  const handleTemplateModalClose = (open) => {
+    setTemplateModalOpen(open);
+    // If closed without choosing, finalise with blank page
+    if (!open && pendingNewPageRef.current) {
+      handleApplyTemplate(null);
+    }
   };
 
   const deletePage = (pageId) => {
@@ -1534,6 +1553,13 @@ export default function BuilderV2() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Page Templates Modal */}
+      <PageTemplatesModal
+        open={templateModalOpen}
+        onOpenChange={handleTemplateModalClose}
+        onApplyTemplate={handleApplyTemplate}
+      />
 
       {/* Main Content */}
       <DragDropContext onDragEnd={handleDragEnd}>
