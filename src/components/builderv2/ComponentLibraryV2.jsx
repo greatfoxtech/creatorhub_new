@@ -60,53 +60,41 @@ const ComponentItem = ({ component, index }) => {
   return (
     <Draggable draggableId={component.type} index={index}>
       {(provided, snapshot) => (
-        <>
-          <div
-            ref={provided.innerRef}
-            {...provided.draggableProps}
-            {...provided.dragHandleProps}
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
-            style={{
-              ...provided.draggableProps.style,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              padding: '10px 8px',
-              backgroundColor: isHovering && !snapshot.isDragging ? '#242938' : '#1A1F2E',
-              border: isHovering && !snapshot.isDragging ? '1px solid #4368D9' : '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '6px',
-              cursor: 'grab',
-              aspectRatio: '1',
-              opacity: snapshot.isDragging ? 0.5 : 1,
-              transform: isHovering && !snapshot.isDragging ? 'translateY(-2px) scale(1.02)' : 'none',
-              boxShadow: isHovering && !snapshot.isDragging ? '0 4px 12px rgba(67, 104, 217, 0.3)' : 'none',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <Icon size={20} color="#4368D9" />
-            <span style={{ fontSize: '10px', fontWeight: '500', color: '#E5E7EB', textAlign: 'center', lineHeight: '1.2' }}>{component.label}</span>
-          </div>
-          {snapshot.isDragging && (
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              padding: '10px 8px',
-              backgroundColor: '#1A1F2E',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '6px',
-              aspectRatio: '1',
-            }}>
-              <Icon size={20} color="#4368D9" />
-              <span style={{ fontSize: '10px', fontWeight: '500', color: '#E5E7EB', textAlign: 'center', lineHeight: '1.2' }}>{component.label}</span>
-            </div>
-          )}
-        </>
+        <div
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          {...provided.dragHandleProps}
+          onMouseEnter={() => setIsHovering(true)}
+          onMouseLeave={() => setIsHovering(false)}
+          style={{
+            ...provided.draggableProps.style,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            padding: '10px 8px',
+            backgroundColor: isHovering && !snapshot.isDragging ? '#242938' : '#1A1F2E',
+            border: snapshot.isDragging
+              ? '1px solid #4368D9'
+              : isHovering
+              ? '1px solid #4368D9'
+              : '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '6px',
+            cursor: snapshot.isDragging ? 'grabbing' : 'grab',
+            aspectRatio: '1',
+            opacity: 1,
+            boxShadow: snapshot.isDragging
+              ? '0 8px 24px rgba(67, 104, 217, 0.5)'
+              : isHovering
+              ? '0 4px 12px rgba(67, 104, 217, 0.3)'
+              : 'none',
+            transition: snapshot.isDragging ? 'none' : 'background-color 0.15s, border 0.15s, box-shadow 0.15s',
+          }}
+        >
+          <Icon size={20} color="#4368D9" />
+          <span style={{ fontSize: '10px', fontWeight: '500', color: '#E5E7EB', textAlign: 'center', lineHeight: '1.2' }}>{component.label}</span>
+        </div>
       )}
     </Draggable>
   );

@@ -22,10 +22,6 @@ const NestedDroppableRenderer = ({ element, renderElement, dndType }) => {
           return (
             <Droppable key={col.id} droppableId={colDroppableId} type={dndType} isDropDisabled={false}>
               {(provided, snapshot) => {
-                if (snapshot.isDraggingOver) {
-                  console.log("✅ DRAGGING OVER COLUMN:", colDroppableId);
-                }
-                
                 return (
                   <div
                     ref={provided.innerRef}
@@ -89,29 +85,9 @@ const NestedDroppableRenderer = ({ element, renderElement, dndType }) => {
   
   return (
     <Droppable droppableId={droppableId} type={dndType} isDropDisabled={false}>
-      {(provided, snapshot) => {
-        if (snapshot.isDraggingOver) {
-          console.log("✅ DRAGGING OVER NESTED:", droppableId);
-        }
-        
-        const refCallback = (el) => {
-          provided.innerRef(el);
-          if (el) {
-            setTimeout(() => {
-              const rect = el.getBoundingClientRect();
-              console.log(`📐 NESTED DROPPABLE "${droppableId}" MOUNTED:`, {
-                type: element.type,
-                width: rect.width,
-                height: rect.height,
-                dataAttribute: el.getAttribute('data-rfd-droppable-id')
-              });
-            }, 100);
-          }
-        };
-        
-        return (
+      {(provided, snapshot) => (
           <div
-            ref={refCallback}
+            ref={provided.innerRef}
             {...provided.droppableProps}
             style={{
               position: 'relative',
@@ -148,8 +124,7 @@ const NestedDroppableRenderer = ({ element, renderElement, dndType }) => {
             </div>
             {provided.placeholder}
           </div>
-        );
-      }}
+      )}
     </Droppable>
   );
 };

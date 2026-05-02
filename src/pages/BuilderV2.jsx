@@ -947,80 +947,21 @@ export default function BuilderV2() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedElement]);
 
-  // Global mouse/pointer up handler for drag cleanup
-  React.useEffect(() => {
-    const handlePointerUp = () => {
-      // Small delay to allow drag library to handle first
-      setTimeout(() => setIsDragging(false), 100);
-    };
-    
-    window.addEventListener('mouseup', handlePointerUp);
-    window.addEventListener('pointerup', handlePointerUp);
-    return () => {
-      window.removeEventListener('mouseup', handlePointerUp);
-      window.removeEventListener('pointerup', handlePointerUp);
-    };
-  }, []);
-
   // Handle drag start
-  const handleDragStart = (start) => {
-    console.log('🎯 DRAG START:', {
-      draggableId: start.draggableId,
-      source: start.source,
-      type: start.type
-    });
-    
-    // Check all registered droppables
-    const droppables = [...document.querySelectorAll('[data-rfd-droppable-id]')].map(n => n.getAttribute('data-rfd-droppable-id'));
-    console.log('📋 REGISTERED DROPPABLES:', droppables);
-    
-    // Log dimensions of all droppables
-    droppables.forEach(id => {
-      const el = document.querySelector(`[data-rfd-droppable-id="${id}"]`);
-      if (el) {
-        const rect = el.getBoundingClientRect();
-        console.log(`📐 DROPPABLE "${id}":`, {
-          width: rect.width,
-          height: rect.height,
-          top: rect.top,
-          left: rect.left,
-          offsetHeight: el.offsetHeight,
-          offsetWidth: el.offsetWidth,
-          visible: rect.height > 0 && rect.width > 0
-        });
-      }
-    });
-    
+  const handleDragStart = () => {
     setIsDragging(true);
-  };
-
-  // Handle drag update - track active droppable
-  const handleDragUpdate = (update) => {
-    console.log("DRAG UPDATE:", {
-      draggableId: update.draggableId,
-      destination: update.destination?.droppableId,
-      combine: update.combine?.droppableId,
-    });
   };
 
   // Handle drag end with nested container support
   const handleDragEnd = (result) => {
-    console.log("DROP RESULT:", {
-      draggableId: result.draggableId,
-      source: result.source?.droppableId,
-      destination: result.destination?.droppableId,
-    });
-
     setIsDragging(false);
 
     if (!result.destination) {
-      console.log('❌ No destination - drop cancelled');
       return;
     }
 
     if (result.source.droppableId === result.destination.droppableId && 
         result.source.index === result.destination.index) {
-      console.log('❌ Same position - no change needed');
       return;
     }
 
@@ -1058,8 +999,6 @@ export default function BuilderV2() {
 
     // --- Handle Adding from Library ---
     if (source.droppableId.startsWith('library-')) {
-      console.log('✅ ADDING FROM LIBRARY to zone:', destZone);
-
       const newElement = {
         id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         type: draggableId,
@@ -1074,8 +1013,6 @@ export default function BuilderV2() {
       // Insert into destination
       const newBody = insertElementIntoZone(bodyElements, destZone, destination.index, newElement);
 
-      console.log('📦 NEW BODY TREE:', newBody.map(el => ({ id: el.id, type: el.type, children: el.props?.children?.length })));
-
       // Reconstruct
       const newElements = [];
       if (currentHeader) newElements.push(currentHeader);
@@ -1088,7 +1025,6 @@ export default function BuilderV2() {
     }
 
     // --- Handle Moving Existing Elements ---
-    console.log('🔄 MOVING EXISTING ELEMENT from:', sourceZone, 'to:', destZone);
 
     // Separate header/footer from body
     const currentHeader = validElements.find(e => e.type === 'Header');
@@ -1099,16 +1035,11 @@ export default function BuilderV2() {
     const { tree: bodyAfterRemove, removed } = removeElementById(bodyElements, draggableId);
 
     if (!removed) {
-      console.error('❌ Could not find element to move:', draggableId);
       return;
     }
 
-    console.log('🗑️ REMOVED:', { id: removed.id, type: removed.type });
-
     // Insert into destination
     const newBody = insertElementIntoZone(bodyAfterRemove, destZone, destination.index, removed);
-
-    console.log('📦 NEW BODY TREE:', newBody.map(el => ({ id: el.id, type: el.type, children: el.props?.children?.length })));
 
     // Reconstruct
     const newElements = [];
@@ -1116,7 +1047,6 @@ export default function BuilderV2() {
     newElements.push(...newBody);
     if (currentFooter) newElements.push(currentFooter);
 
-    console.log('✅ Moved element:', { id: removed.id, type: removed.type, from: sourceZone, to: destZone });
     setElements(newElements);
     };
 
@@ -1566,20 +1496,8 @@ export default function BuilderV2() {
       </Dialog>
 
       {/* Main Content */}
-      <DragDropContext onDragStart={handleDragStart} onDragUpdate={handleDragUpdate} onDragEnd={handleDragEnd}>
+      <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
-          {/* Drag state overlay - prevents clicks during drag */}
-          {isDragging && (
-            <div style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 9999,
-              pointerEvents: 'none'
-            }} />
-          )}
           {selectedElement ? (
             <PropertiesPanelV2
               key="properties-panel"
