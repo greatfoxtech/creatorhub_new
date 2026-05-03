@@ -1,40 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Plus, Edit2, Eye, Copy, Trash2, FileText, LayoutTemplate } from 'lucide-react';
 import {
-  Plus, Edit2, Eye, Copy, Trash2, FileText, LayoutTemplate
-} from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import PageTemplatesModal, { PAGE_TEMPLATES } from '@/components/builderv2/PageTemplates';
+import PageTemplatesModal from '@/components/builderv2/PageTemplates';
 import PreviewModal from '@/components/builderv2/PreviewModal';
+import usePages from '@/lib/usePages';
 
-const STORAGE_KEY = 'builderv2-pages';
+// ── helpers ──────────────────────────────────────────────────────────────────
 
-const loadData = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-};
-
-const saveData = (data) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-};
-
-// Guess which template a page was built from based on its elements
 const guessTemplate = (canvasJson = []) => {
   const types = canvasJson.map(el => el.type);
   if (types.includes('Feed')) return 'Personal Profile';
@@ -44,61 +22,32 @@ const guessTemplate = (canvasJson = []) => {
   return 'Blank';
 };
 
-const templateColor = (name) => {
-  const map = {
-    'Personal Profile': 'bg-blue-500/20 text-blue-300',
-    'Portfolio': 'bg-purple-500/20 text-purple-300',
-    'Landing Page': 'bg-green-500/20 text-green-300',
-    'Social Profile': 'bg-pink-500/20 text-pink-300',
-    'Blank': 'bg-gray-500/20 text-gray-400',
-  };
-  return map[name] || map['Blank'];
+const templateColor = (name) => ({
+  'Personal Profile': 'bg-blue-500/20 text-blue-300',
+  'Portfolio':        'bg-purple-500/20 text-purple-300',
+  'Landing Page':     'bg-green-500/20 text-green-300',
+  'Social Profile':   'bg-pink-500/20 text-pink-300',
+  'Blank':            'bg-gray-500/20 text-gray-400',
+}[name] || 'bg-gray-500/20 text-gray-400');
+
+const formatDate = (ts) => {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 };
+
+// ── component ─────────────────────────────────────────────────────────────────
 
 export default function PagesPage() {
   const navigate = useNavigate();
-  const [pages, setPages] = useState([]);
+  const { pages, addPage, deletePage, duplicatePage, changeActivePageId } = usePages();
+
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
-  const [previewPage, setPreviewPage] = useState(null); // page object for preview
-  const [deletePageId, setDeletePageId] = useState(null);
+  const [previewPage, setPreviewPage]             = useState(null);
+  const [deletePageId, setDeletePageId]           = useState(null);
 
-  // Load pages from localStorage on mount
-  useEffect(() => {
-    const data = loadData();
-    if (data?.pages) {
-      setPages(data.pages);
-    }
-  }, []);
+  // ── handlers ──────────────────────────────────────────────────────────────
 
-  // Listen for storage changes (in case BuilderV2 is open in another tab)
-  useEffect(() => {
-    const onStorage = () => {
-      const data = loadData();
-      if (data?.pages) setPages(data.pages);
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
-
-  const persistPages = (newPages) => {
-    const data = loadData() || {};
-    data.pages = newPages;
-    data.timestamp = Date.now();
-    saveData(data);
-    setPages(newPages);
-  };
-
-  // Open BuilderV2 with the chosen page active
-  const handleEdit = (page) => {
-    const data = loadData() || {};
-    data.activePageId = page.id;
-    saveData(data);
-    navigate('/BuilderV2');
-  };
-
-  // Called when user picks a template from the modal
   const handleApplyTemplate = (template) => {
-    const uid = () => `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const pageNumbers = pages
       .map(p => p.name.match(/^Page (\d+)$/))
       .filter(Boolean)
@@ -106,38 +55,31 @@ export default function PagesPage() {
     const nextNumber = pageNumbers.length > 0 ? Math.max(...pageNumbers) + 1 : pages.length + 1;
 
     const newPage = {
-      id: `page-${Date.now()}`,
-      name: template ? template.name : `Page ${nextNumber}`,
-      slug: template ? template.id : `page-${nextNumber}`,
+      id:         `page-${Date.now()}`,
+      name:       template ? template.name : `Page ${nextNumber}`,
+      slug:       template ? template.id   : `page-${nextNumber}`,
       canvasJson: template ? template.build() : [],
-      created_date: Date.now(),
-      updated_date: Date.now(),
     };
 
-    const newPages = [...pages, newPage];
-    persistPages(newPages);
+    addPage(newPage); // hook persists + fires sync event
+    setTemplateModalOpen(false);
+  };
+
+  const handleEdit = (page) => {
+    changeActivePageId(page.id); // hook persists activePageId, BuilderV2 will pick it up
+    navigate('/BuilderV2');
   };
 
   const handleDuplicate = (page) => {
-    const newPage = {
-      ...page,
-      id: `page-${Date.now()}`,
-      name: `${page.name} (Copy)`,
-      slug: `${page.slug}-copy-${Date.now()}`,
-      updated_date: Date.now(),
-    };
-    persistPages([...pages, newPage]);
+    duplicatePage(page);
   };
 
   const handleDelete = (pageId) => {
-    persistPages(pages.filter(p => p.id !== pageId));
+    deletePage(pageId);
     setDeletePageId(null);
   };
 
-  const formatDate = (ts) => {
-    if (!ts) return '—';
-    return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-  };
+  // ── render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-[#0A0D14] text-white">
@@ -158,7 +100,7 @@ export default function PagesPage() {
           </Button>
         </div>
 
-        {/* Page grid */}
+        {/* Empty state */}
         {pages.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div className="w-16 h-16 bg-[#1A1F2E] rounded-full flex items-center justify-center mb-4">
@@ -185,20 +127,18 @@ export default function PagesPage() {
                   key={page.id}
                   className="bg-[#121726] border border-gray-800 rounded-xl p-5 flex flex-col gap-4 hover:border-gray-600 transition-colors"
                 >
-                  {/* Card header */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 bg-[#1A1F2E] rounded-lg flex items-center justify-center flex-shrink-0">
-                        <FileText size={16} className="text-[#4368D9]" />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-white text-sm truncate">{page.name}</h3>
-                        <p className="text-xs text-gray-500 truncate">/{page.slug}</p>
-                      </div>
+                  {/* Card top */}
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="w-9 h-9 bg-[#1A1F2E] rounded-lg flex items-center justify-center flex-shrink-0">
+                      <FileText size={16} className="text-[#4368D9]" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-white text-sm truncate">{page.name}</h3>
+                      <p className="text-xs text-gray-500 truncate">/{page.slug}</p>
                     </div>
                   </div>
 
-                  {/* Meta */}
+                  {/* Meta badges */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge className={`text-[10px] font-medium px-2 py-0.5 ${templateColor(tplName)}`}>
                       {tplName}
@@ -219,8 +159,7 @@ export default function PagesPage() {
                       className="flex-1 bg-[#4368D9] hover:bg-[#3a59b4] text-white gap-1.5 text-xs"
                       onClick={() => handleEdit(page)}
                     >
-                      <Edit2 size={12} />
-                      Edit
+                      <Edit2 size={12} /> Edit
                     </Button>
                     <Button
                       size="sm"
@@ -228,12 +167,10 @@ export default function PagesPage() {
                       className="bg-transparent border-gray-700 text-gray-300 hover:bg-[#1A1F2E] hover:text-white gap-1.5 text-xs"
                       onClick={() => setPreviewPage(page)}
                     >
-                      <Eye size={12} />
-                      Preview
+                      <Eye size={12} /> Preview
                     </Button>
                     <Button
-                      size="icon"
-                      variant="ghost"
+                      size="icon" variant="ghost"
                       className="h-8 w-8 text-gray-500 hover:text-white hover:bg-[#1A1F2E]"
                       title="Duplicate"
                       onClick={() => handleDuplicate(page)}
@@ -241,8 +178,7 @@ export default function PagesPage() {
                       <Copy size={13} />
                     </Button>
                     <Button
-                      size="icon"
-                      variant="ghost"
+                      size="icon" variant="ghost"
                       className="h-8 w-8 text-gray-500 hover:text-red-400 hover:bg-red-500/10"
                       title="Delete"
                       onClick={() => setDeletePageId(page.id)}
@@ -257,14 +193,14 @@ export default function PagesPage() {
         )}
       </div>
 
-      {/* Templates Modal */}
+      {/* Templates modal */}
       <PageTemplatesModal
         open={templateModalOpen}
         onOpenChange={setTemplateModalOpen}
-        onApplyTemplate={(tpl) => { handleApplyTemplate(tpl); setTemplateModalOpen(false); }}
+        onApplyTemplate={handleApplyTemplate}
       />
 
-      {/* Preview Modal */}
+      {/* Preview modal */}
       {previewPage && (
         <PreviewModal
           open={!!previewPage}
@@ -273,7 +209,7 @@ export default function PagesPage() {
         />
       )}
 
-      {/* Delete Confirm */}
+      {/* Delete confirm */}
       <AlertDialog open={!!deletePageId} onOpenChange={(open) => { if (!open) setDeletePageId(null); }}>
         <AlertDialogContent className="bg-[#1A1F2E] border-gray-700 text-white">
           <AlertDialogHeader>
@@ -283,7 +219,7 @@ export default function PagesPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-transparent border-gray-600 text-white hover:bg-[rgba(255,255,255,0.08)]">
+            <AlertDialogCancel className="bg-transparent border-gray-600 text-white hover:bg-white/10">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction

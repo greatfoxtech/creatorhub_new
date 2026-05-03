@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import usePages from '@/lib/usePages';
 import { DragDropContext } from '@hello-pangea/dnd';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -823,69 +824,69 @@ const getDefaultProps = (type) => {
 const MAX_HISTORY = 50;
 
 export default function BuilderV2() {
-  const [elements, setElements] = useState([]);
-  const [history, setHistory] = useState([[]]);   // stack of elements snapshots
+  // ── Shared page state (synced with Dashboard > Pages via usePages hook) ──
+  const {
+    pages,
+    activePageId,
+    addPage,
+    switchPage,
+    deletePage: hookDeletePage,
+    updatePageCanvas,
+    changeActivePageId,
+  } = usePages();
+
+  const [elements, setElements] = useState(() => {
+    // Initialise canvas from the active page stored in localStorage
+    try {
+      const raw = localStorage.getItem('builderv2-pages');
+      if (!raw) return [];
+      const data = JSON.parse(raw);
+      const activeId = data.activePageId || data.pages?.[0]?.id;
+      const activePage = (data.pages || []).find(p => p.id === activeId);
+      return (activePage?.canvasJson || []).filter(el => el && el.id && el.type);
+    } catch { return []; }
+  });
+
+  const [history, setHistory] = useState([[]]);
   const [historyIndex, setHistoryIndex] = useState(0);
-  const skipHistoryRef = React.useRef(false);       // flag to skip recording during undo/redo
+  const skipHistoryRef = React.useRef(false);
   const [selectedElement, setSelectedElement] = useState(null);
   const [deviceView, setDeviceView] = useState('desktop');
-  const [canvasSettings, setCanvasSettings] = useState({
-    padding: 24,
-    maxWidth: 1200,
-    snapToGrid: true,
+  const [canvasSettings, setCanvasSettings] = useState(() => {
+    try {
+      const raw = localStorage.getItem('builderv2-pages');
+      const data = raw ? JSON.parse(raw) : {};
+      return data.canvasSettings || { padding: 24, maxWidth: 1200, snapToGrid: true };
+    } catch { return { padding: 24, maxWidth: 1200, snapToGrid: true }; }
   });
   const [lastSaved, setLastSaved] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
-  
-  // Pages management - Canvas pages for editing
-  const [pages, setPages] = useState([
-    { id: 'home', name: 'Home', slug: 'home', canvasJson: [] },
-  ]);
-  const [activePageId, setActivePageId] = useState('home');
   const [deleteConfirmPageId, setDeleteConfirmPageId] = useState(null);
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
-  const pendingNewPageRef = React.useRef(null); // holds newPage before template is chosen
-  
-  // Derived page list from Header element (single source of truth)
-  const derivedPages = React.useMemo(() => {
-    const header = elements.find(el => el.type === 'Header');
-    if (!header) return pages;
-    
-    const result = [];
-    
-    // Extract navigation items
-    const navElement = header.props?.children?.find(c => c.type === 'Navigation');
-    if (navElement && navElement.items) {
-      navElement.items.forEach((item, idx) => {
-        const slug = item.toLowerCase().replace(/\s+/g, '-');
-        const existingPage = pages.find(p => p.slug === slug);
-        result.push({
-          id: existingPage?.id || `nav-${slug}`,
-          name: item,
-          slug: slug,
-          type: 'main',
-          canvasJson: existingPage?.canvasJson || []
-        });
-      });
+  const pendingNewPageRef = React.useRef(null);
+
+  // When the hook's activePageId changes externally (e.g. Pages screen navigated here),
+  // reload the canvas for the newly active page.
+  const prevActiveIdRef = React.useRef(activePageId);
+  React.useEffect(() => {
+    if (activePageId && activePageId !== prevActiveIdRef.current) {
+      prevActiveIdRef.current = activePageId;
+      try {
+        const raw = localStorage.getItem('builderv2-pages');
+        const data = raw ? JSON.parse(raw) : {};
+        const page = (data.pages || []).find(p => p.id === activePageId);
+        if (page) {
+          const valid = (page.canvasJson || []).filter(el => el && el.id && el.type);
+          skipHistoryRef.current = true;
+          setElements(valid);
+          setSelectedElement(null);
+        }
+      } catch {}
     }
-    
-    // Extract submenu tabs
-    const submenuElement = header.props?.children?.find(c => c.type === 'Submenu');
-    if (submenuElement && submenuElement.tabs) {
-      submenuElement.tabs.forEach((tab) => {
-        const existingPage = pages.find(p => p.slug === tab.value);
-        result.push({
-          id: existingPage?.id || `tab-${tab.value}`,
-          name: tab.label,
-          slug: tab.value,
-          type: 'subtab',
-          canvasJson: existingPage?.canvasJson || []
-        });
-      });
-    }
-    
-    return result.length > 0 ? result : pages;
-  }, [elements, pages]);
+  }, [activePageId]);
+
+  // Use pages as-is (no derived pages from header anymore — keeps it simple & synced)
+  const derivedPages = pages.length > 0 ? pages : [{ id: 'home', name: 'Home', slug: 'home', canvasJson: [] }];
 
   // Record undo history whenever elements change (skip during undo/redo)
   React.useEffect(() => {
@@ -926,56 +927,24 @@ export default function BuilderV2() {
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
 
-  // Load from localStorage on mount
-  React.useEffect(() => {
-    const saved = localStorage.getItem('builderv2-pages');
-    if (saved) {
-      try {
-        const data = JSON.parse(saved);
-        if (data.pages && data.pages.length > 0) {
-          setPages(data.pages);
-          setActivePageId(data.activePageId || data.pages[0].id);
-          // Load active page canvas
-          const activePage = data.pages.find(p => p.id === (data.activePageId || data.pages[0].id));
-          if (activePage) {
-            const validElements = (activePage.canvasJson || []).filter(el => el && el.id && el.type);
-            setElements(validElements);
-          }
-        }
-        if (data.canvasSettings) {
-          setCanvasSettings(data.canvasSettings);
-        }
-        setLastSaved(data.timestamp);
-      } catch (e) {
-        console.error('Failed to load saved data:', e);
-      }
-    }
-  }, []);
-
-  // Save to localStorage
+  // Save current page canvas to shared storage
   const saveToLocalStorage = () => {
-    // Update current page's canvas
-    const updatedPages = pages.map(page => 
-      page.id === activePageId ? { ...page, canvasJson: elements } : page
-    );
-    
-    const data = {
-      pages: updatedPages,
-      activePageId,
-      canvasSettings,
-      timestamp: Date.now(),
-    };
-    localStorage.setItem('builderv2-pages', JSON.stringify(data));
+    updatePageCanvas(activePageId, elements);
+    // Also persist canvasSettings
+    try {
+      const raw = localStorage.getItem('builderv2-pages');
+      const data = raw ? JSON.parse(raw) : {};
+      data.canvasSettings = canvasSettings;
+      localStorage.setItem('builderv2-pages', JSON.stringify(data));
+    } catch {}
     setLastSaved(Date.now());
   };
 
   // Auto-save every 30 seconds
   React.useEffect(() => {
-    const interval = setInterval(() => {
-      saveToLocalStorage();
-    }, 30000);
+    const interval = setInterval(saveToLocalStorage, 30000);
     return () => clearInterval(interval);
-  }, [elements, canvasSettings, pages, activePageId]);
+  }, [elements, canvasSettings, activePageId]);
 
   // Escape key handler - cancel drag and clear selection
   React.useEffect(() => {
@@ -1161,50 +1130,27 @@ export default function BuilderV2() {
     setSelectedElement(newElement);
   };
 
-  // Page management functions
+  // ── Page management (all mutations go through the shared hook) ───────────
+
   const switchToPage = (pageId) => {
     if (pageId === activePageId) return;
-    
-    // Save current page before switching
-    const updatedPages = pages.map(page => 
-      page.id === activePageId ? { ...page, canvasJson: elements } : page
-    );
-    setPages(updatedPages);
-    
-    // Load new page - check both pages and derivedPages
-    const allPages = [...updatedPages, ...derivedPages.filter(dp => !updatedPages.find(p => p.id === dp.id))];
-    const targetPage = allPages.find(p => p.id === pageId);
-    if (targetPage) {
-      const validElements = (targetPage.canvasJson || []).filter(el => el && el.id && el.type);
-      setElements(validElements);
-      setActivePageId(pageId);
-      setSelectedElement(null);
-      
-      // If this is a derived page not in pages, add it
-      if (!updatedPages.find(p => p.id === pageId)) {
-        updatedPages.push(targetPage);
-        setPages(updatedPages);
-      }
-      
-      // Save to localStorage
-      const data = {
-        pages: updatedPages,
-        activePageId: pageId,
-        canvasSettings,
-        timestamp: Date.now(),
-      };
-      localStorage.setItem('builderv2-pages', JSON.stringify(data));
-      setLastSaved(Date.now());
-    }
+    // Save current canvas first, then switch
+    const newCanvas = switchPage(pageId, activePageId, elements);
+    skipHistoryRef.current = true;
+    setElements(newCanvas);
+    setSelectedElement(null);
+    prevActiveIdRef.current = pageId;
   };
 
   const addNewPage = () => {
-    // Find next available page number
-    const pageNumbers = derivedPages
+    // Save current page first
+    updatePageCanvas(activePageId, elements);
+
+    const pageNumbers = pages
       .map(p => p.name.match(/^Page (\d+)$/))
       .filter(Boolean)
-      .map(match => parseInt(match[1]));
-    const nextNumber = pageNumbers.length > 0 ? Math.max(...pageNumbers) + 1 : 1;
+      .map(m => parseInt(m[1]));
+    const nextNumber = pageNumbers.length > 0 ? Math.max(...pageNumbers) + 1 : pages.length + 1;
 
     const newPage = {
       id: `page-${Date.now()}`,
@@ -1213,80 +1159,46 @@ export default function BuilderV2() {
       canvasJson: [],
     };
 
-    // Save current page first
-    const updatedPages = pages.map(page =>
-      page.id === activePageId ? { ...page, canvasJson: elements } : page
-    );
-    setPages([...updatedPages, newPage]);
-
-    // Store pending page and open template picker
-    pendingNewPageRef.current = { newPage, updatedPages };
+    pendingNewPageRef.current = newPage;
     setTemplateModalOpen(true);
   };
 
   const handleApplyTemplate = (template) => {
-    if (!pendingNewPageRef.current) return;
-    const { newPage, updatedPages } = pendingNewPageRef.current;
+    const newPage = pendingNewPageRef.current;
+    if (!newPage) return;
     pendingNewPageRef.current = null;
 
     const templateElements = template ? template.build() : [];
-    const finalPage = { ...newPage, canvasJson: templateElements };
-    const newPages = [...updatedPages, finalPage];
-
-    setPages(newPages);
+    addPage({ ...newPage, canvasJson: templateElements }); // hook persists + fires sync event
+    skipHistoryRef.current = true;
     setElements(templateElements);
-    setActivePageId(newPage.id);
     setSelectedElement(null);
-
-    const data = { pages: newPages, activePageId: newPage.id, canvasSettings, timestamp: Date.now() };
-    localStorage.setItem('builderv2-pages', JSON.stringify(data));
-    setLastSaved(Date.now());
+    prevActiveIdRef.current = newPage.id;
   };
 
   const handleTemplateModalClose = (open) => {
     setTemplateModalOpen(open);
-    // If closed without choosing, finalise with blank page
     if (!open && pendingNewPageRef.current) {
       handleApplyTemplate(null);
     }
   };
 
   const deletePage = (pageId) => {
-    // Prevent deleting last page
-    if (derivedPages.length <= 1) {
-      return;
-    }
-
-    const updatedPages = pages.filter(p => p.id !== pageId);
-    
-    // If deleting active page, switch to first available
-    let newActivePageId = activePageId;
-    if (pageId === activePageId) {
-      const remainingDerived = derivedPages.filter(p => p.id !== pageId);
-      newActivePageId = remainingDerived[0]?.id || derivedPages[0]?.id;
-      
-      // Load new page canvas
-      const targetPage = [...updatedPages, ...remainingDerived].find(p => p.id === newActivePageId);
-      if (targetPage) {
-        const validElements = (targetPage.canvasJson || []).filter(el => el && el.id && el.type);
-        setElements(validElements);
-      }
-    }
-    
-    setPages(updatedPages);
-    setActivePageId(newActivePageId);
+    if (derivedPages.length <= 1) return;
+    const newActiveId = hookDeletePage(pageId); // hook handles persistence + sync
     setDeleteConfirmPageId(null);
     setSelectedElement(null);
-    
-    // Save to localStorage
-    const data = {
-      pages: updatedPages,
-      activePageId: newActivePageId,
-      canvasSettings,
-      timestamp: Date.now(),
-    };
-    localStorage.setItem('builderv2-pages', JSON.stringify(data));
-    setLastSaved(Date.now());
+    if (pageId === activePageId && newActiveId) {
+      try {
+        const raw = localStorage.getItem('builderv2-pages');
+        const data = raw ? JSON.parse(raw) : {};
+        const page = (data.pages || []).find(p => p.id === newActiveId);
+        const valid = (page?.canvasJson || []).filter(el => el && el.id && el.type);
+        skipHistoryRef.current = true;
+        setElements(valid);
+        prevActiveIdRef.current = newActiveId;
+      } catch {}
+    }
   };
 
   const DeviceButton = ({ icon: Icon, type, label }) => (
