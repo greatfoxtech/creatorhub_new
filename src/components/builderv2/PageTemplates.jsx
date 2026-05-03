@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { LayoutTemplate, User, Briefcase, FileText } from 'lucide-react';
+import { LayoutTemplate, User, Briefcase, FileText, Share2 } from 'lucide-react';
 
 // Generates a unique id
 const uid = () => `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -117,6 +117,53 @@ export const PAGE_TEMPLATES = [
           children: [
             { id: uid(), type: 'BrandBlock', row: 'main', zone: 'left', logoType: 'text', text: 'PORTFOLIO', fontSize: 20, fontWeight: 'bold', color: '#ffffff', bio: 'Creative work & design.', bioColor: '#9CA3AF' },
             { id: uid(), type: 'Social', row: 'main', zone: 'right', socialIcons: [{ network: 'Instagram', url: '#' }, { network: 'Twitter', url: '#' }, { network: 'LinkedIn', url: '#' }], iconColor: '#ffffff', iconSize: 20 },
+            { id: uid(), type: 'Copyright', row: 'bottom', zone: 'left', text: '© 2025 Your Name.', textColor: '#6B7280', fontSize: 12 },
+          ],
+          widgetBands: []
+        }
+      },
+    ],
+  },
+  {
+    id: 'social-profile',
+    name: 'Social Profile',
+    description: 'Header with submenu, stories row, reels grid, and a social footer.',
+    icon: Share2,
+    preview: [
+      { label: 'Header', color: '#4368D9' },
+      { label: 'Stories', color: '#EC4899' },
+      { label: 'Reels Grid', color: '#8B5CF6' },
+      { label: 'Footer', color: '#374151' },
+    ],
+    build: () => [
+      {
+        id: uid(), type: 'Header',
+        props: {
+          backgroundColor: '#ffffff', padding: 16,
+          children: [
+            { id: uid(), type: 'Logo', logoType: 'text', text: 'YOUR NAME', fontSize: 20, fontWeight: 'bold', color: '#111827', zone: 'left' },
+            { id: uid(), type: 'Submenu', tabs: [
+              { id: uid(), label: 'Posts', type: 'social_view', value: 'posts', visibility: 'both' },
+              { id: uid(), label: 'Reels', type: 'social_view', value: 'reels', visibility: 'both' },
+              { id: uid(), label: 'Tagged', type: 'social_view', value: 'tagged', visibility: 'both' },
+            ], styleVariant: 'underline', alignment: 'center', backgroundColor: 'transparent', textColor: '#6B7280', activeColor: '#111827', sticky: false, mobileScroll: true, zone: 'center' },
+            { id: uid(), type: 'IconButton', icon: 'Bell', size: 22, color: '#374151', zone: 'right' },
+          ]
+        }
+      },
+      { id: uid(), type: 'Stories', props: { padding: 16 } },
+      { id: uid(), type: 'Reels', props: { padding: 24 } },
+      {
+        id: uid(), type: 'Footer',
+        props: {
+          backgroundColor: '#111827', padding: 0, layoutMode: 'simple',
+          rows: {
+            top: { enabled: false, backgroundColor: '#111827', padding: 12 },
+            main: { enabled: true, backgroundColor: 'transparent', padding: 24 },
+            bottom: { enabled: true, backgroundColor: '#000000', padding: 16 }
+          },
+          children: [
+            { id: uid(), type: 'Social', row: 'main', zone: 'center', socialIcons: [{ network: 'Instagram', url: '#' }, { network: 'Twitter', url: '#' }, { network: 'TikTok', url: '#' }, { network: 'YouTube', url: '#' }], iconColor: '#ffffff', iconSize: 22 },
             { id: uid(), type: 'Copyright', row: 'bottom', zone: 'left', text: '© 2025 Your Name.', textColor: '#6B7280', fontSize: 12 },
           ],
           widgetBands: []

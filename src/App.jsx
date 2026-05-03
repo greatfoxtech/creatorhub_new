@@ -10,7 +10,7 @@ import Home from './pages/Home';
 import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import ProfileBuilder from './pages/ProfileBuilder';
-import Pages from './pages/Pages';
+import Pages from './pages/Pages.jsx';
 import Feed from './pages/Feed';
 import Stories from './pages/Stories';
 import Reels from './pages/Reels';
