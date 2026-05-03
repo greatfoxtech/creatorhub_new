@@ -1,11 +1,18 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { LayoutTemplate, User, Briefcase, FileText, Share2 } from 'lucide-react';
+import { LayoutTemplate, User, Briefcase, FileText, Share2, Sparkles } from 'lucide-react';
+import { CREATOR_THEME_01 } from './themes/CreatorTheme01';
 
 // Generates a unique id
 const uid = () => `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+// ─── Full multi-page themes ───────────────────────────────────────────────────
+export const PAGE_THEMES = [
+  { ...CREATOR_THEME_01, icon: Sparkles },
+];
+
+// ─── Single-page templates ────────────────────────────────────────────────────
 export const PAGE_TEMPLATES = [
   {
     id: 'personal-profile',
@@ -245,64 +252,104 @@ export const PAGE_TEMPLATES = [
   },
 ];
 
+const TemplateRow = ({ tpl, onApplyTemplate, onOpenChange, accentColor = '#4368D9', badge }) => {
+  const Icon = tpl.icon;
+  return (
+    <div
+      className="flex items-start gap-4 p-4 rounded-lg bg-[#1A1F2E] border border-gray-700 hover:border-[#4368D9] transition-colors cursor-pointer group"
+      onClick={() => { onApplyTemplate(tpl); onOpenChange(false); }}
+    >
+      {/* Mini preview strip */}
+      <div className="flex flex-col gap-1 flex-shrink-0 w-20">
+        {tpl.preview.map((block, i) => (
+          <div
+            key={i}
+            style={{ backgroundColor: block.color, opacity: 0.85 }}
+            className="rounded text-[8px] text-white font-semibold px-1.5 py-0.5 truncate"
+          >
+            {block.label}
+          </div>
+        ))}
+      </div>
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <Icon size={16} className="flex-shrink-0" style={{ color: accentColor }} />
+          <span className="font-semibold text-sm text-white">{tpl.name}</span>
+          {badge && (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300">
+              {badge}
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-gray-400 leading-relaxed">{tpl.description}</p>
+      </div>
+      <Button
+        size="sm"
+        className="flex-shrink-0 text-white group-hover:scale-105 transition-transform"
+        style={{ backgroundColor: accentColor }}
+        onClick={(e) => { e.stopPropagation(); onApplyTemplate(tpl); onOpenChange(false); }}
+      >
+        Use
+      </Button>
+    </div>
+  );
+};
+
 export default function PageTemplatesModal({ open, onOpenChange, onApplyTemplate }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#121726] border-gray-700 text-white max-w-2xl">
+      <DialogContent className="bg-[#121726] border-gray-700 text-white max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2 mb-1">
             <LayoutTemplate size={18} className="text-[#4368D9]" />
-            <DialogTitle className="text-white">Choose a Page Template</DialogTitle>
+            <DialogTitle className="text-white">Choose a Template</DialogTitle>
           </div>
           <DialogDescription className="text-gray-400">
-            Start with a ready-made layout. You can customise everything after applying.
+            Pick a full theme or a single-page template. Everything can be customised after applying.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 gap-4 mt-2">
-          {PAGE_TEMPLATES.map((tpl) => {
-            const Icon = tpl.icon;
-            return (
-              <div
+        {/* ── Full Themes ── */}
+        <div className="mt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles size={14} className="text-purple-400" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-purple-400">Full Profile Themes</span>
+            <span className="text-[10px] text-gray-500 ml-1">— creates multiple pages at once</span>
+          </div>
+          <div className="flex flex-col gap-3">
+            {PAGE_THEMES.map(tpl => (
+              <TemplateRow
                 key={tpl.id}
-                className="flex items-start gap-4 p-4 rounded-lg bg-[#1A1F2E] border border-gray-700 hover:border-[#4368D9] transition-colors cursor-pointer group"
-                onClick={() => { onApplyTemplate(tpl); onOpenChange(false); }}
-              >
-                {/* Mini preview strip */}
-                <div className="flex flex-col gap-1 flex-shrink-0 w-20">
-                  {tpl.preview.map((block, i) => (
-                    <div
-                      key={i}
-                      style={{ backgroundColor: block.color, opacity: 0.85 }}
-                      className="rounded text-[8px] text-white font-semibold px-1.5 py-0.5 truncate"
-                    >
-                      {block.label}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Icon size={16} className="text-[#4368D9] flex-shrink-0" />
-                    <span className="font-semibold text-sm text-white">{tpl.name}</span>
-                  </div>
-                  <p className="text-xs text-gray-400 leading-relaxed">{tpl.description}</p>
-                </div>
-
-                <Button
-                  size="sm"
-                  className="flex-shrink-0 bg-[#4368D9] hover:bg-[#3a59b4] text-white group-hover:scale-105 transition-transform"
-                  onClick={(e) => { e.stopPropagation(); onApplyTemplate(tpl); onOpenChange(false); }}
-                >
-                  Use
-                </Button>
-              </div>
-            );
-          })}
+                tpl={tpl}
+                onApplyTemplate={onApplyTemplate}
+                onOpenChange={onOpenChange}
+                accentColor="#6E43D9"
+                badge={`${tpl.buildAll().length} pages`}
+              />
+            ))}
+          </div>
         </div>
 
-        <div className="mt-2 pt-3 border-t border-gray-700 flex justify-end">
+        {/* ── Single-page Templates ── */}
+        <div className="mt-6">
+          <div className="flex items-center gap-2 mb-3">
+            <LayoutTemplate size={14} className="text-[#4368D9]" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#4368D9]">Single Page Templates</span>
+          </div>
+          <div className="flex flex-col gap-3">
+            {PAGE_TEMPLATES.map(tpl => (
+              <TemplateRow
+                key={tpl.id}
+                tpl={tpl}
+                onApplyTemplate={onApplyTemplate}
+                onOpenChange={onOpenChange}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 pt-3 border-t border-gray-700 flex justify-end">
           <Button
             variant="ghost"
             size="sm"

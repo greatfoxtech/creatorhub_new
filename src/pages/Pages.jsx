@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import PageTemplatesModal from '@/components/builderv2/PageTemplates';
 import PreviewModal from '@/components/builderv2/PreviewModal';
-import usePages from '@/lib/usePages';
+import usePages, { loadStorageData, STORAGE_KEY } from '@/lib/usePages';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -48,20 +48,43 @@ export default function PagesPage() {
   // ── handlers ──────────────────────────────────────────────────────────────
 
   const handleApplyTemplate = (template) => {
-    const pageNumbers = pages
-      .map(p => p.name.match(/^Page (\d+)$/))
-      .filter(Boolean)
-      .map(m => parseInt(m[1]));
-    const nextNumber = pageNumbers.length > 0 ? Math.max(...pageNumbers) + 1 : pages.length + 1;
+    if (!template) {
+      // Blank page
+      const pageNumbers = pages.map(p => p.name.match(/^Page (\d+)$/)).filter(Boolean).map(m => parseInt(m[1]));
+      const nextNumber = pageNumbers.length > 0 ? Math.max(...pageNumbers) + 1 : pages.length + 1;
+      addPage({ id: `page-${Date.now()}`, name: `Page ${nextNumber}`, slug: `page-${nextNumber}`, canvasJson: [] });
+      setTemplateModalOpen(false);
+      return;
+    }
 
+    if (template.isTheme && typeof template.buildAll === 'function') {
+      // Multi-page theme — batch-write all pages at once, then set first as active
+      const themePages = template.buildAll();
+      const now = Date.now();
+      const data = loadStorageData() || {};
+      const existing = data.pages || [];
+      const newPages = [
+        ...existing,
+        ...themePages.map((p, i) => ({ ...p, created_date: now + i, updated_date: now + i })),
+      ];
+      data.pages = newPages;
+      data.activePageId = themePages[0].id;
+      data.timestamp = now;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      window.dispatchEvent(new CustomEvent('builderv2-pages-updated'));
+      setTemplateModalOpen(false);
+      navigate('/BuilderV2');
+      return;
+    }
+
+    // Single-page template
     const newPage = {
       id:         `page-${Date.now()}`,
-      name:       template ? template.name : `Page ${nextNumber}`,
-      slug:       template ? template.id   : `page-${nextNumber}`,
-      canvasJson: template ? template.build() : [],
+      name:       template.name,
+      slug:       template.id,
+      canvasJson: template.build(),
     };
-
-    addPage(newPage); // hook persists + fires sync event
+    addPage(newPage);
     setTemplateModalOpen(false);
   };
 

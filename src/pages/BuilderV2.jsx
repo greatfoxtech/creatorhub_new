@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import usePages from '@/lib/usePages';
+import usePages, { loadStorageData, STORAGE_KEY } from '@/lib/usePages';
 import { DragDropContext } from '@hello-pangea/dnd';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -1164,12 +1164,38 @@ export default function BuilderV2() {
   };
 
   const handleApplyTemplate = (template) => {
-    const newPage = pendingNewPageRef.current;
-    if (!newPage) return;
     pendingNewPageRef.current = null;
 
+    // Multi-page theme
+    if (template && template.isTheme && typeof template.buildAll === 'function') {
+      const themePages = template.buildAll();
+      const now = Date.now();
+      const data = loadStorageData() || {};
+      // Save current page canvas first
+      data.pages = (data.pages || []).map(p =>
+        p.id === activePageId ? { ...p, canvasJson: elements, updated_date: now } : p
+      );
+      const existing = data.pages || [];
+      const newPages = [
+        ...existing,
+        ...themePages.map((p, i) => ({ ...p, created_date: now + i, updated_date: now + i })),
+      ];
+      data.pages = newPages;
+      data.activePageId = themePages[0].id;
+      data.timestamp = now;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      window.dispatchEvent(new CustomEvent('builderv2-pages-updated'));
+      skipHistoryRef.current = true;
+      setElements((themePages[0].canvasJson || []).filter(el => el && el.id && el.type));
+      setSelectedElement(null);
+      prevActiveIdRef.current = themePages[0].id;
+      return;
+    }
+
+    // Single page template or blank
+    const newPage = { id: `page-${Date.now()}`, name: 'New Page', slug: `page-${Date.now()}`, canvasJson: [] };
     const templateElements = template ? template.build() : [];
-    addPage({ ...newPage, canvasJson: templateElements }); // hook persists + fires sync event
+    addPage({ ...newPage, canvasJson: templateElements });
     skipHistoryRef.current = true;
     setElements(templateElements);
     setSelectedElement(null);
