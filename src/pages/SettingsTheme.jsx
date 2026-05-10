@@ -2,15 +2,18 @@ import React, { useState } from 'react';
 import { THEMES, getThemeById, applyThemeToCSSVars } from '@/lib/themes';
 import { useThemeContext } from '@/lib/ThemeContext';
 import ThemePreviewCard from '@/components/theme/ThemePreviewCard';
-import ThemeLivePreview from '@/components/theme/ThemeLivePreview';
 import LiveCustomizer from '@/components/theme/LiveCustomizer';
-import { Check, Eye, Palette, Zap, Type, Layers, Sparkles, ChevronRight } from 'lucide-react';
+import ThemeFullPreviewModal from '@/components/theme/ThemeFullPreviewModal';
+import { Check, Eye, Palette, Zap, Type, Layers, Sparkles, ChevronRight, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function SettingsThemePage() {
   const { activeTheme, applyTheme } = useThemeContext();
+  const navigate = useNavigate();
   const [previewThemeId, setPreviewThemeId] = useState(activeTheme.id);
   const [applied, setApplied] = useState(false);
   const [tab, setTab] = useState('themes');
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
 
   const previewTheme = getThemeById(previewThemeId);
   const t = previewTheme.tokens;
@@ -23,10 +26,14 @@ export default function SettingsThemePage() {
   };
 
   const handleApplyCustom = (customTheme) => {
-    // Apply custom tokens immediately to CSS vars (full theme apply)
     applyThemeToCSSVars(customTheme);
     setApplied(true);
     setTimeout(() => setApplied(false), 3000);
+  };
+
+  const handleTestOnDashboard = () => {
+    applyTheme(previewThemeId);
+    navigate('/Dashboard');
   };
 
   const handleSetDefault = () => handleApply();
@@ -79,26 +86,33 @@ export default function SettingsThemePage() {
               <p style={{ margin: 0, color: '#8B9CC8', fontSize: '14px' }}>
                 Control the global visual design system — colors, typography, spacing, and more — applied across your entire profile and pages.
               </p>
+              {/* Active theme indicator */}
+              <div style={{ marginTop: '10px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '5px 14px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: activeTheme.tokens.colors.primary, boxShadow: `0 0 6px ${activeTheme.tokens.colors.primary}` }} />
+                <span style={{ fontSize: '12px', color: '#8B9CC8', fontWeight: '500' }}>
+                  Current Active Theme: <strong style={{ color: '#F0F4FF' }}>{activeTheme.name}</strong>
+                </span>
+              </div>
             </div>
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexShrink: 0 }}>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               {previewThemeId !== activeTheme.id && (
                 <span style={{ fontSize: '12px', color: '#F59E0B', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', padding: '4px 10px', borderRadius: '20px', fontWeight: '600' }}>
                   Unsaved preview
                 </span>
               )}
               <button
-                onClick={() => setPreviewThemeId(previewThemeId)}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', background: 'rgba(255,255,255,0.05)', color: '#F0F4FF', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', fontWeight: '600', fontSize: '13px', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}
+                onClick={() => setPreviewModalOpen(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', background: 'rgba(255,255,255,0.05)', color: '#F0F4FF', border: '1px solid rgba(255,255,255,0.18)', borderRadius: '10px', fontWeight: '600', fontSize: '13px', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}
               >
                 <Eye size={14} /> Preview
               </button>
               <button
-                onClick={handleSetDefault}
+                onClick={handleTestOnDashboard}
                 style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', background: 'rgba(255,255,255,0.05)', color: '#F0F4FF', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px', fontWeight: '600', fontSize: '13px', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}
               >
-                Set as Default
+                <ExternalLink size={14} /> Test on Dashboard
               </button>
               <button
                 onClick={handleApply}
@@ -141,6 +155,13 @@ export default function SettingsThemePage() {
           Theme "{previewTheme.name}" applied successfully! The entire app has been updated.
         </div>
       )}
+
+      {/* ── Full Preview Modal ── */}
+      <ThemeFullPreviewModal
+        open={previewModalOpen}
+        onClose={() => setPreviewModalOpen(false)}
+        theme={previewTheme}
+      />
 
       {/* ── Content Area ── */}
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '32px' }}>
