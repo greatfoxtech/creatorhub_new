@@ -1,7 +1,7 @@
 import React from 'react';
 
 // Mini visual thumbnail for a theme
-export default function ThemePreviewCard({ theme, isActive, onClick }) {
+export default function ThemePreviewCard({ theme, isActive, isApplied, onClick }) {
   const t = theme.tokens;
   const c = t.colors;
   const g = t.gradients;
@@ -44,10 +44,15 @@ export default function ThemePreviewCard({ theme, isActive, onClick }) {
           ))}
         </div>
 
-        {/* Active badge */}
-        {isActive && (
+        {/* Badges */}
+        {isApplied && (
+          <div style={{ position: 'absolute', top: '8px', right: '8px', background: '#10B981', color: '#fff', borderRadius: '20px', fontSize: '9px', fontWeight: '700', padding: '2px 8px', letterSpacing: '0.05em' }}>
+            ✓ APPLIED
+          </div>
+        )}
+        {isActive && !isApplied && (
           <div style={{ position: 'absolute', top: '8px', right: '8px', background: c.primary, color: '#fff', borderRadius: '20px', fontSize: '9px', fontWeight: '700', padding: '2px 8px', letterSpacing: '0.05em' }}>
-            ACTIVE
+            PREVIEWING
           </div>
         )}
       </div>

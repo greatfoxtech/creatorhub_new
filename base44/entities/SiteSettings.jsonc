@@ -1,0 +1,48 @@
+{
+  "name": "SiteSettings",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "The ID of the user/creator this setting belongs to."
+    },
+    "theme_id": {
+      "type": "string",
+      "description": "The active theme ID (e.g. 'creator-theme-01', 'minimal-light').",
+      "default": "creator-theme-01"
+    },
+    "custom_colors": {
+      "type": "object",
+      "description": "Optional per-user color overrides on top of the selected theme.",
+      "additionalProperties": true
+    },
+    "custom_typography": {
+      "type": "object",
+      "description": "Optional per-user typography overrides (fontFamily, fontSize scale, etc.).",
+      "additionalProperties": true
+    },
+    "custom_button_style": {
+      "type": "object",
+      "description": "Optional overrides for button styles (borderRadius, shadow, etc.).",
+      "additionalProperties": true
+    },
+    "custom_card_style": {
+      "type": "object",
+      "description": "Optional overrides for card styles (borderRadius, shadow, border, etc.).",
+      "additionalProperties": true
+    },
+    "dark_mode": {
+      "type": "boolean",
+      "description": "Whether the user has explicitly forced dark mode (overrides theme default).",
+      "default": true
+    },
+    "custom_css": {
+      "type": "string",
+      "description": "Advanced: any additional raw CSS the user wants injected on their public profile."
+    }
+  },
+  "required": [
+    "user_id",
+    "theme_id"
+  ]
+}

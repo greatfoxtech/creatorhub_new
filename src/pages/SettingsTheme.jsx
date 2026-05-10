@@ -1,33 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { THEMES, loadActiveTheme, saveActiveTheme, applyThemeToCSSVars, getThemeById } from '@/lib/themes';
+import React, { useState } from 'react';
+import { THEMES, getThemeById } from '@/lib/themes';
+import { useThemeContext } from '@/lib/ThemeContext';
 import ThemePreviewCard from '@/components/theme/ThemePreviewCard';
 import ThemeLivePreview from '@/components/theme/ThemeLivePreview';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Check, Eye, Palette, Zap, Type, Layers, Sparkles, Monitor, Sun, Moon, ChevronRight } from 'lucide-react';
+import { Check, Eye, Palette, Zap, Type, Layers, Sparkles, ChevronRight } from 'lucide-react';
 
 export default function SettingsThemePage() {
-  const [activeThemeId, setActiveThemeId] = useState(() => loadActiveTheme().id);
-  const [previewThemeId, setPreviewThemeId] = useState(() => loadActiveTheme().id);
+  const { activeTheme, applyTheme } = useThemeContext();
+  const [previewThemeId, setPreviewThemeId] = useState(activeTheme.id);
   const [applied, setApplied] = useState(false);
-  const [tab, setTab] = useState('themes'); // 'themes' | 'tokens'
+  const [tab, setTab] = useState('themes');
 
   const previewTheme = getThemeById(previewThemeId);
-  const activeTheme = getThemeById(activeThemeId);
   const t = previewTheme.tokens;
   const c = t.colors;
 
   const handleApply = () => {
-    saveActiveTheme(previewThemeId);
-    applyThemeToCSSVars(previewTheme);
-    setActiveThemeId(previewThemeId);
+    applyTheme(previewThemeId); // updates context → CSS vars → AppLayout → entire shell
     setApplied(true);
-    setTimeout(() => setApplied(false), 2500);
+    setTimeout(() => setApplied(false), 3000);
   };
 
-  const handleSetDefault = () => {
-    handleApply(); // same for now — persists to localStorage
-  };
+  const handleSetDefault = () => handleApply();
 
   // Token categories for the token inspector panel
   const tokenSections = [
@@ -81,7 +75,7 @@ export default function SettingsThemePage() {
 
             {/* Action Buttons */}
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexShrink: 0 }}>
-              {previewThemeId !== activeThemeId && (
+              {previewThemeId !== activeTheme.id && (
                 <span style={{ fontSize: '12px', color: '#F59E0B', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', padding: '4px 10px', borderRadius: '20px', fontWeight: '600' }}>
                   Unsaved preview
                 </span>
@@ -132,6 +126,14 @@ export default function SettingsThemePage() {
         </div>
       </div>
 
+      {/* ── Applied Banner ── */}
+      {applied && (
+        <div style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', padding: '14px 32px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', fontWeight: '600', color: '#fff', boxShadow: '0 4px 20px rgba(16,185,129,0.4)' }}>
+          <Check size={18} />
+          Theme "{previewTheme.name}" applied successfully! The entire app has been updated.
+        </div>
+      )}
+
       {/* ── Content Area ── */}
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '32px' }}>
 
@@ -147,6 +149,7 @@ export default function SettingsThemePage() {
                     key={theme.id}
                     theme={theme}
                     isActive={previewThemeId === theme.id}
+                    isApplied={activeTheme.id === theme.id}
                     onClick={() => setPreviewThemeId(theme.id)}
                   />
                 ))}
@@ -169,7 +172,7 @@ export default function SettingsThemePage() {
             {/* Right: Selected Theme Info */}
             <div>
               <h2 style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: '700', color: '#F0F4FF' }}>Theme Details</h2>
-              <ThemeDetailPanel theme={previewTheme} activeThemeId={activeThemeId} />
+              <ThemeDetailPanel theme={previewTheme} activeThemeId={activeTheme.id} />
             </div>
           </div>
         )}
