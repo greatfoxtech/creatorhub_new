@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { THEMES, getThemeById } from '@/lib/themes';
+import { THEMES, getThemeById, applyThemeToCSSVars } from '@/lib/themes';
 import { useThemeContext } from '@/lib/ThemeContext';
 import ThemePreviewCard from '@/components/theme/ThemePreviewCard';
 import ThemeLivePreview from '@/components/theme/ThemeLivePreview';
+import LiveCustomizer from '@/components/theme/LiveCustomizer';
 import { Check, Eye, Palette, Zap, Type, Layers, Sparkles, ChevronRight } from 'lucide-react';
 
 export default function SettingsThemePage() {
@@ -16,7 +17,14 @@ export default function SettingsThemePage() {
   const c = t.colors;
 
   const handleApply = () => {
-    applyTheme(previewThemeId); // updates context → CSS vars → AppLayout → entire shell
+    applyTheme(previewThemeId);
+    setApplied(true);
+    setTimeout(() => setApplied(false), 3000);
+  };
+
+  const handleApplyCustom = (customTheme) => {
+    // Apply custom tokens immediately to CSS vars (full theme apply)
+    applyThemeToCSSVars(customTheme);
     setApplied(true);
     setTimeout(() => setApplied(false), 3000);
   };
@@ -103,7 +111,7 @@ export default function SettingsThemePage() {
 
           {/* Tabs */}
           <div style={{ display: 'flex', gap: '2px' }}>
-            {[['themes', 'Themes'], ['preview', 'Live Preview'], ['tokens', 'Design Tokens']].map(([key, label]) => (
+            {[['themes', 'Themes'], ['preview', '✦ Live Customizer'], ['tokens', 'Design Tokens']].map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setTab(key)}
@@ -180,21 +188,11 @@ export default function SettingsThemePage() {
         {/* ── LIVE PREVIEW TAB ── */}
         {tab === 'preview' && (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-              <div>
-                <h2 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '700', color: '#F0F4FF' }}>Live Preview — {previewTheme.name}</h2>
-                <p style={{ margin: 0, fontSize: '13px', color: '#8B9CC8' }}>This is how your profile will look with this theme applied.</p>
-              </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {THEMES.map(th => (
-                  <button key={th.id} onClick={() => setPreviewThemeId(th.id)}
-                    style={{ padding: '6px 14px', borderRadius: '20px', border: previewThemeId === th.id ? `2px solid ${th.tokens.colors.primary}` : '2px solid rgba(255,255,255,0.1)', background: previewThemeId === th.id ? th.tokens.colors.primaryLight : 'transparent', color: previewThemeId === th.id ? th.tokens.colors.primary : '#8B9CC8', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
-                    {th.name}
-                  </button>
-                ))}
-              </div>
+            <div style={{ marginBottom: '24px' }}>
+              <h2 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '700', color: '#F0F4FF' }}>Live Customizer</h2>
+              <p style={{ margin: 0, fontSize: '13px', color: '#8B9CC8' }}>Tweak colors, fonts, and layout — see your profile update in real time before saving.</p>
             </div>
-            <ThemeLivePreview theme={previewTheme} />
+            <LiveCustomizer baseTheme={previewTheme} onApply={handleApplyCustom} />
           </div>
         )}
 
