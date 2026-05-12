@@ -1,0 +1,60 @@
+{
+  "name": "UserProfile",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "References the built-in User entity id."
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Public display name shown on the profile."
+    },
+    "username": {
+      "type": "string",
+      "description": "Unique @handle for the user."
+    },
+    "avatar_url": {
+      "type": "string",
+      "description": "URL to the user's profile picture."
+    },
+    "bio": {
+      "type": "string",
+      "description": "Short bio / about section."
+    },
+    "role_title": {
+      "type": "string",
+      "description": "User's professional role or title, e.g. 'Content Creator'."
+    },
+    "location": {
+      "type": "string",
+      "description": "City, Country."
+    },
+    "website": {
+      "type": "string",
+      "description": "Personal or portfolio website URL."
+    },
+    "theme_id": {
+      "type": "string",
+      "description": "Active theme ID for this user's public profile.",
+      "default": "creator-theme-01"
+    },
+    "follower_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Denormalised follower count, updated on follow/unfollow."
+    },
+    "following_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Denormalised following count, updated on follow/unfollow."
+    },
+    "is_verified": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "user_id"
+  ]
+}

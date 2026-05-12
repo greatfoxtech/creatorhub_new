@@ -1,0 +1,48 @@
+{
+  "name": "ThemeSettings",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "References the built-in User entity id."
+    },
+    "active_theme_id": {
+      "type": "string",
+      "description": "The currently active theme ID.",
+      "default": "creator-theme-01"
+    },
+    "custom_colors": {
+      "type": "object",
+      "description": "Per-user color token overrides.",
+      "additionalProperties": true
+    },
+    "custom_typography": {
+      "type": "object",
+      "description": "Per-user typography overrides.",
+      "additionalProperties": true
+    },
+    "custom_spacing": {
+      "type": "object",
+      "description": "Per-user spacing overrides.",
+      "additionalProperties": true
+    },
+    "custom_buttons": {
+      "type": "object",
+      "description": "Per-user button style overrides.",
+      "additionalProperties": true
+    },
+    "custom_cards": {
+      "type": "object",
+      "description": "Per-user card style overrides.",
+      "additionalProperties": true
+    },
+    "custom_css": {
+      "type": "string",
+      "description": "Raw CSS injected on the public profile page."
+    }
+  },
+  "required": [
+    "user_id",
+    "active_theme_id"
+  ]
+}

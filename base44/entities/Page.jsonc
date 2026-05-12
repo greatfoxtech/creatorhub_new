@@ -18,9 +18,18 @@
       "type": "boolean",
       "default": false
     },
+    "elements_json": {
+      "type": "array",
+      "description": "The JSON canvas elements array for this page (builder v2 format).",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "default": []
+    },
     "content": {
       "type": "array",
-      "description": "The JSON-based layout of blocks for this page.",
+      "description": "Legacy JSON-based layout of blocks (builder v1 format).",
       "items": {
         "type": "object",
         "properties": {
@@ -37,6 +46,10 @@
         }
       },
       "default": []
+    },
+    "template_id": {
+      "type": "string",
+      "description": "Optional reference to the template used to create this page."
     }
   },
   "required": [
