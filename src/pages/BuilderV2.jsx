@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { ChevronLeft, Save, Eye, Monitor, Tablet, Smartphone, SquarePen, Plus, MoreVertical, Trash2, Undo2, Redo2, Palette, Check } from 'lucide-react';
 import { useThemeContext } from '@/lib/ThemeContext';
+import StarterThemePicker from '@/components/builderv2/StarterThemePicker';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ComponentLibraryV2 from '@/components/builderv2/ComponentLibraryV2';
@@ -1374,13 +1375,8 @@ export default function BuilderV2() {
               <SquarePen size={18} color="white" />
             </div>
             <h1 style={{ fontSize: '16px', fontWeight: '600', color: 'white' }}>Profile Builder V2</h1>
-            {/* Active Theme Label */}
-            {activeTheme && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: activeTheme.tokens?.colors?.primary || '#4368D9', boxShadow: `0 0 6px ${activeTheme.tokens?.colors?.primary || '#4368D9'}` }} />
-                <span style={{ fontSize: '11px', color: '#9CA3AF', fontWeight: '500' }}>Active Theme: <strong style={{ color: '#F0F4FF' }}>{activeTheme.name}</strong></span>
-              </div>
-            )}
+            {/* Starter Theme Picker */}
+            <StarterThemePicker onThemeApplied={() => {}} />
 
             {/* Pages Carousel - Derived from Header */}
             <div style={{ display: 'flex', alignItems: 'center', marginLeft: '24px', flex: '0 1 auto', minWidth: 0 }}>
