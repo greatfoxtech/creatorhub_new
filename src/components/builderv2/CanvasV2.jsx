@@ -129,9 +129,12 @@ const NestedDroppableRenderer = ({ element, renderElement, dndType }) => {
   );
 };
 
-export default function CanvasV2({ elements, selectedElement, setSelectedElement, onDeleteElement, onDuplicateElement, canvasSettings = { padding: 24, maxWidth: 900, snapToGrid: true }, deviceView = 'desktop', dndType = "BUILDER" }) {
+export default function CanvasV2({ elements, selectedElement, setSelectedElement, onDeleteElement, onDuplicateElement, canvasSettings = { padding: 24, maxWidth: 900, snapToGrid: true }, deviceView = 'desktop', dndType = "BUILDER", themeTokens = null }) {
   const DND_TYPE = dndType;
   const [hoveredElement, setHoveredElement] = React.useState(null);
+  const tc = themeTokens?.colors || {};
+  const canvasBg = tc.background || '#ffffff';
+  const surfaceBg = tc.surface || '#ffffff';
 
   const headerElement = elements.find(el => el.type === 'Header');
   const footerElement = elements.find(el => el.type === 'Footer');
@@ -370,7 +373,7 @@ export default function CanvasV2({ elements, selectedElement, setSelectedElement
             >
               <GripVertical size={18} color="#ffffff" />
             </div>
-            <RenderedComponentV2 element={element} onSelect={setSelectedElement} />
+            <RenderedComponentV2 element={element} onSelect={setSelectedElement} themeTokens={themeTokens} />
           </div>
         )}
       </Draggable>
@@ -528,7 +531,7 @@ export default function CanvasV2({ elements, selectedElement, setSelectedElement
             </Button>
           </div>
         )}
-        <RenderedComponentV2 element={element} onSelect={setSelectedElement} />
+        <RenderedComponentV2 element={element} onSelect={setSelectedElement} themeTokens={themeTokens} />
       </div>
     );
   };
@@ -564,7 +567,7 @@ export default function CanvasV2({ elements, selectedElement, setSelectedElement
         style={{
           width: deviceView === 'desktop' ? '100%' : deviceWidth,
           minHeight: isConstrainedView ? 'calc(100% - 40px)' : '100%',
-          backgroundColor: '#ffffff',
+          backgroundColor: canvasBg,
           boxShadow: isConstrainedView ? '0 4px 24px rgba(0,0,0,0.12)' : 'none',
           borderRadius: isConstrainedView ? '12px' : '0',
           overflow: 'visible',
@@ -588,7 +591,8 @@ export default function CanvasV2({ elements, selectedElement, setSelectedElement
             minHeight: '100%', 
             display: 'flex', 
             flexDirection: 'column', 
-            backgroundColor: '#ffffff', 
+            backgroundColor: canvasBg,
+            fontFamily: themeTokens?.typography?.fontFamily || 'inherit',
             padding: `${canvasSettings.padding}px`, 
             boxSizing: 'border-box', 
             position: 'relative'
@@ -614,7 +618,7 @@ export default function CanvasV2({ elements, selectedElement, setSelectedElement
                       border: snapshot.isDraggingOver ? '2px dashed #4368D9' : '2px solid transparent',
                       borderRadius: '8px',
                       transition: 'border 0.2s, background-color 0.2s',
-                      backgroundColor: snapshot.isDraggingOver ? 'rgba(67, 104, 217, 0.02)' : '#ffffff',
+                      backgroundColor: snapshot.isDraggingOver ? 'rgba(67, 104, 217, 0.02)' : canvasBg,
                       position: 'relative'
                     }}
                   >
@@ -626,15 +630,15 @@ export default function CanvasV2({ elements, selectedElement, setSelectedElement
                         justifyContent: 'center',
                         height: '100%',
                         textAlign: 'center',
-                        border: '2px dashed #D1D5DB',
+                        border: `2px dashed ${tc.border || '#D1D5DB'}`,
                         borderRadius: '8px',
-                        backgroundColor: '#F9FAFB',
+                        backgroundColor: surfaceBg,
                         padding: '40px'
                       }}>
                         <div style={{
                           width: '60px',
                           height: '60px',
-                          backgroundColor: '#E5E7EB',
+                          backgroundColor: tc.border || '#E5E7EB',
                           borderRadius: '50%',
                           display: 'flex',
                           alignItems: 'center',
@@ -643,10 +647,10 @@ export default function CanvasV2({ elements, selectedElement, setSelectedElement
                         }}>
                           <Plus size={30} color="#9CA3AF" />
                         </div>
-                        <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#1F2937', marginBottom: '4px' }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: '600', color: tc.text || '#1F2937', marginBottom: '4px' }}>
                           Body Content
                         </h3>
-                        <p style={{ fontSize: '12px', color: '#6B7280' }}>
+                        <p style={{ fontSize: '12px', color: tc.textSecondary || '#6B7280' }}>
                           Drag sections here
                         </p>
                       </div>

@@ -4,7 +4,8 @@ import { DragDropContext } from '@hello-pangea/dnd';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { ChevronLeft, Save, Eye, Monitor, Tablet, Smartphone, SquarePen, Plus, MoreVertical, Trash2, Undo2, Redo2 } from 'lucide-react';
+import { ChevronLeft, Save, Eye, Monitor, Tablet, Smartphone, SquarePen, Plus, MoreVertical, Trash2, Undo2, Redo2, Palette, Check } from 'lucide-react';
+import { useThemeContext } from '@/lib/ThemeContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ComponentLibraryV2 from '@/components/builderv2/ComponentLibraryV2';
@@ -824,6 +825,82 @@ const getDefaultProps = (type) => {
 const MAX_HISTORY = 50;
 
 export default function BuilderV2() {
+  const { activeTheme } = useThemeContext();
+  const themeTokens = activeTheme?.tokens || null;
+  const [themeApplied, setThemeApplied] = React.useState(false);
+
+  // Apply active theme tokens to all elements on the current canvas
+  const applyThemeToPage = () => {
+    if (!themeTokens) return;
+    const c = themeTokens.colors;
+    const r = themeTokens.radius;
+    const ff = themeTokens.typography?.fontFamily;
+
+    const applyToElement = (el) => {
+      if (!el || !el.type) return el;
+      let patch = {};
+
+      if (el.type === 'Heading') {
+        patch = { color: c.text };
+      } else if (el.type === 'Text') {
+        patch = { color: c.textSecondary || c.text };
+      } else if (el.type === 'Button') {
+        patch = { backgroundColor: c.primary, color: '#ffffff', borderRadius: parseInt(r.button || r.md || 8) };
+      } else if (el.type === 'Card') {
+        patch = { backgroundColor: c.surface, borderRadius: parseInt(r.card || r.lg || 12) };
+      } else if (el.type === 'Section') {
+        patch = { backgroundColor: el.props?.backgroundColor && el.props.backgroundColor !== 'transparent' ? el.props.backgroundColor : 'transparent' };
+      } else if (el.type === 'Container') {
+        patch = {};
+      } else if (el.type === 'Header') {
+        patch = { backgroundColor: c.surface };
+        // Update header children
+        const newChildren = (el.props?.children || []).map(child => {
+          if (child.type === 'Logo') return { ...child, color: c.text };
+          if (child.type === 'Tagline') return { ...child, color: c.textSecondary };
+          if (child.type === 'Navigation') return { ...child, textColor: c.text };
+          if (child.type === 'Submenu') return { ...child, backgroundColor: c.surface, textColor: c.textSecondary, activeColor: c.primary };
+          if (child.type === 'Button') return { ...child, backgroundColor: c.primary, color: '#ffffff' };
+          if (child.type === 'FollowButton') return { ...child, backgroundColor: c.primary, labelColor: '#ffffff' };
+          return child;
+        });
+        return { ...el, props: { ...el.props, ...patch, children: newChildren } };
+      } else if (el.type === 'Footer') {
+        patch = { backgroundColor: c.surface };
+        const newChildren = (el.props?.children || []).map(child => {
+          if (child.type === 'BrandBlock') return { ...child, color: c.text, bioColor: c.textSecondary };
+          if (child.type === 'FooterMenu') return { ...child, textColor: c.textSecondary };
+          if (child.type === 'Copyright') return { ...child, textColor: c.textSecondary };
+          if (child.type === 'LegalLinks') return { ...child, textColor: c.textSecondary };
+          if (child.type === 'Button') return { ...child, backgroundColor: c.primary, color: '#ffffff' };
+          return child;
+        });
+        return { ...el, props: { ...el.props, ...patch, children: newChildren } };
+      } else if (el.type === 'HeroSection') {
+        patch = { backgroundColor: c.background };
+      }
+
+      // Apply to nested children recursively
+      let updatedProps = { ...el.props, ...patch };
+      if (Array.isArray(el.props?.children)) {
+        updatedProps.children = el.props.children.map(applyToElement);
+      }
+      // Handle Columns
+      if (el.type === 'Columns' && Array.isArray(el.props?.children)) {
+        updatedProps.children = el.props.children.map(col => ({
+          ...col,
+          children: Array.isArray(col.children) ? col.children.map(applyToElement) : col.children,
+        }));
+      }
+
+      return { ...el, props: updatedProps };
+    };
+
+    setElements(prev => prev.map(applyToElement));
+    setThemeApplied(true);
+    setTimeout(() => setThemeApplied(false), 2500);
+  };
+
   // ── Shared page state (synced with Dashboard > Pages via usePages hook) ──
   const {
     pages,
@@ -1262,6 +1339,13 @@ export default function BuilderV2() {
               <SquarePen size={18} color="white" />
             </div>
             <h1 style={{ fontSize: '16px', fontWeight: '600', color: 'white' }}>Profile Builder V2</h1>
+            {/* Active Theme Label */}
+            {activeTheme && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: activeTheme.tokens?.colors?.primary || '#4368D9', boxShadow: `0 0 6px ${activeTheme.tokens?.colors?.primary || '#4368D9'}` }} />
+                <span style={{ fontSize: '11px', color: '#9CA3AF', fontWeight: '500' }}>Active Theme: <strong style={{ color: '#F0F4FF' }}>{activeTheme.name}</strong></span>
+              </div>
+            )}
 
             {/* Pages Carousel - Derived from Header */}
             <div style={{ display: 'flex', alignItems: 'center', marginLeft: '24px', flex: '0 1 auto', minWidth: 0 }}>
@@ -1450,6 +1534,26 @@ export default function BuilderV2() {
             </Button>
           </div>
 
+          {/* Apply Theme to Page button */}
+          <button
+            onClick={applyThemeToPage}
+            disabled={!themeTokens}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '7px 14px', borderRadius: '8px',
+              background: themeApplied ? '#10B981' : `linear-gradient(135deg, ${themeTokens?.colors?.primary || '#4368D9'}, ${themeTokens?.colors?.secondary || '#6E43D9'})`,
+              color: '#fff', border: 'none', cursor: themeTokens ? 'pointer' : 'not-allowed',
+              fontSize: '12px', fontWeight: '700', fontFamily: 'Inter, sans-serif',
+              opacity: themeTokens ? 1 : 0.4,
+              boxShadow: themeApplied ? '0 2px 8px rgba(16,185,129,0.4)' : `0 2px 8px ${themeTokens?.colors?.primary || '#4368D9'}44`,
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap',
+            }}
+            title="Apply active theme colors to all elements on this page"
+          >
+            {themeApplied ? <><Check size={13} /> Applied!</> : <><Palette size={13} /> Apply Theme</>}
+          </button>
+
           <Button 
             variant="outline" 
             size="sm" 
@@ -1533,6 +1637,7 @@ export default function BuilderV2() {
             canvasSettings={canvasSettings}
             deviceView={deviceView}
             dndType={DND_TYPE}
+            themeTokens={themeTokens}
           />
         </div>
       </DragDropContext>
