@@ -827,78 +827,113 @@ const MAX_HISTORY = 50;
 export default function BuilderV2() {
   const { activeTheme } = useThemeContext();
   const themeTokens = activeTheme?.tokens || null;
-  const [themeApplied, setThemeApplied] = React.useState(false);
+  const [themeApplied, setThemeApplied] = React.useState(null); // null | { count, themeId, themeName, pageId }
 
   // Apply active theme tokens to all elements on the current canvas
   const applyThemeToPage = () => {
-    if (!themeTokens) return;
-    const c = themeTokens.colors;
-    const r = themeTokens.radius;
+    if (!themeTokens) {
+      console.warn('[ApplyTheme] No themeTokens available');
+      return;
+    }
+    const c = themeTokens.colors || {};
+    const r = themeTokens.radius || {};
     const ff = themeTokens.typography?.fontFamily;
+    let updatedCount = 0;
 
     const applyToElement = (el) => {
       if (!el || !el.type) return el;
       let patch = {};
 
       if (el.type === 'Heading') {
-        patch = { color: c.text };
+        patch = {
+          color: c.text || '#111827',
+          ...(ff ? { fontFamily: ff } : {}),
+        };
       } else if (el.type === 'Text') {
-        patch = { color: c.textSecondary || c.text };
+        patch = {
+          color: c.textSecondary || c.text || '#374151',
+          ...(ff ? { fontFamily: ff } : {}),
+        };
       } else if (el.type === 'Button') {
-        patch = { backgroundColor: c.primary, color: '#ffffff', borderRadius: parseInt(r.button || r.md || 8) };
+        patch = {
+          backgroundColor: c.primary || '#4368D9',
+          color: '#ffffff',
+          borderRadius: parseInt(r.button || r.md || '8') || 8,
+          ...(ff ? { fontFamily: ff } : {}),
+        };
       } else if (el.type === 'Card') {
-        patch = { backgroundColor: c.surface, borderRadius: parseInt(r.card || r.lg || 12) };
+        patch = {
+          backgroundColor: c.surface || '#ffffff',
+          borderRadius: parseInt(r.card || r.lg || '12') || 12,
+        };
       } else if (el.type === 'Section') {
-        patch = { backgroundColor: el.props?.backgroundColor && el.props.backgroundColor !== 'transparent' ? el.props.backgroundColor : 'transparent' };
+        // Only apply background color if not already explicitly set to something meaningful
+        patch = {
+          backgroundColor: c.background || 'transparent',
+        };
       } else if (el.type === 'Container') {
-        patch = {};
-      } else if (el.type === 'Header') {
-        patch = { backgroundColor: c.surface };
-        // Update header children
-        const newChildren = (el.props?.children || []).map(child => {
-          if (child.type === 'Logo') return { ...child, color: c.text };
-          if (child.type === 'Tagline') return { ...child, color: c.textSecondary };
-          if (child.type === 'Navigation') return { ...child, textColor: c.text };
-          if (child.type === 'Submenu') return { ...child, backgroundColor: c.surface, textColor: c.textSecondary, activeColor: c.primary };
-          if (child.type === 'Button') return { ...child, backgroundColor: c.primary, color: '#ffffff' };
-          if (child.type === 'FollowButton') return { ...child, backgroundColor: c.primary, labelColor: '#ffffff' };
-          return child;
-        });
-        return { ...el, props: { ...el.props, ...patch, children: newChildren } };
-      } else if (el.type === 'Footer') {
-        patch = { backgroundColor: c.surface };
-        const newChildren = (el.props?.children || []).map(child => {
-          if (child.type === 'BrandBlock') return { ...child, color: c.text, bioColor: c.textSecondary };
-          if (child.type === 'FooterMenu') return { ...child, textColor: c.textSecondary };
-          if (child.type === 'Copyright') return { ...child, textColor: c.textSecondary };
-          if (child.type === 'LegalLinks') return { ...child, textColor: c.textSecondary };
-          if (child.type === 'Button') return { ...child, backgroundColor: c.primary, color: '#ffffff' };
-          return child;
-        });
-        return { ...el, props: { ...el.props, ...patch, children: newChildren } };
+        patch = {
+          backgroundColor: c.surface || 'transparent',
+        };
       } else if (el.type === 'HeroSection') {
-        patch = { backgroundColor: c.background };
+        patch = {
+          backgroundColor: c.background || '#f3f4f6',
+          ...(ff ? { fontFamily: ff } : {}),
+        };
+      } else if (el.type === 'Header') {
+        const newChildren = (el.props?.children || []).map(child => {
+          if (child.type === 'Logo') return { ...child, color: c.text || '#111827' };
+          if (child.type === 'Tagline') return { ...child, color: c.textSecondary || '#6B7280' };
+          if (child.type === 'Navigation') return { ...child, textColor: c.text || '#111827' };
+          if (child.type === 'Submenu') return { ...child, backgroundColor: c.surface || '#fff', textColor: c.textSecondary || '#6B7280', activeColor: c.primary || '#4368D9' };
+          if (child.type === 'Button') return { ...child, backgroundColor: c.primary || '#4368D9', color: '#ffffff' };
+          if (child.type === 'FollowButton') return { ...child, backgroundColor: c.primary || '#4368D9', labelColor: '#ffffff' };
+          return child;
+        });
+        updatedCount++;
+        return { ...el, props: { ...el.props, backgroundColor: c.surface || '#ffffff', children: newChildren } };
+      } else if (el.type === 'Footer') {
+        const newChildren = (el.props?.children || []).map(child => {
+          if (child.type === 'BrandBlock') return { ...child, color: c.text || '#111827', bioColor: c.textSecondary || '#6B7280' };
+          if (child.type === 'FooterMenu') return { ...child, textColor: c.textSecondary || '#6B7280' };
+          if (child.type === 'Copyright') return { ...child, textColor: c.textSecondary || '#6B7280' };
+          if (child.type === 'LegalLinks') return { ...child, textColor: c.textSecondary || '#6B7280' };
+          if (child.type === 'Button') return { ...child, backgroundColor: c.primary || '#4368D9', color: '#ffffff' };
+          return child;
+        });
+        updatedCount++;
+        return { ...el, props: { ...el.props, backgroundColor: c.surface || '#ffffff', children: newChildren } };
       }
 
-      // Apply to nested children recursively
+      updatedCount++;
+
+      // Build updated props: merge patch into existing props
       let updatedProps = { ...el.props, ...patch };
-      if (Array.isArray(el.props?.children)) {
-        updatedProps.children = el.props.children.map(applyToElement);
-      }
-      // Handle Columns
-      if (el.type === 'Columns' && Array.isArray(el.props?.children)) {
-        updatedProps.children = el.props.children.map(col => ({
-          ...col,
-          children: Array.isArray(col.children) ? col.children.map(applyToElement) : col.children,
-        }));
+
+      // Recurse into nested children (Section/Container children)
+      if (Array.isArray(el.props?.children) && el.type !== 'Header' && el.type !== 'Footer') {
+        if (el.type === 'Columns') {
+          // Columns has column objects with their own children arrays
+          updatedProps.children = el.props.children.map(col => ({
+            ...col,
+            children: Array.isArray(col.children) ? col.children.map(applyToElement) : col.children,
+          }));
+        } else {
+          updatedProps.children = el.props.children.map(applyToElement);
+        }
       }
 
       return { ...el, props: updatedProps };
     };
 
-    setElements(prev => prev.map(applyToElement));
-    setThemeApplied(true);
-    setTimeout(() => setThemeApplied(false), 2500);
+    setElements(prev => {
+      const next = prev.map(applyToElement);
+      console.log(`[ApplyTheme] Updated ${updatedCount} elements with theme "${activeTheme?.name}" on page ${activePageId}`);
+      return next;
+    });
+
+    setThemeApplied({ count: updatedCount, themeId: activeTheme?.id, themeName: activeTheme?.name, pageId: activePageId });
+    setTimeout(() => setThemeApplied(null), 4000);
   };
 
   // ── Shared page state (synced with Dashboard > Pages via usePages hook) ──
@@ -1553,6 +1588,38 @@ export default function BuilderV2() {
           >
             {themeApplied ? <><Check size={13} /> Applied!</> : <><Palette size={13} /> Apply Theme</>}
           </button>
+
+          {/* Debug confirmation toast */}
+          <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+          {themeApplied && (
+            <div style={{
+              position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999,
+              backgroundColor: '#1A1F2E', border: '1px solid #10B981',
+              borderRadius: '10px', padding: '14px 18px', minWidth: '280px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+              animation: 'fadeIn 0.2s ease',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <Check size={16} color="#10B981" />
+                <span style={{ color: '#10B981', fontWeight: '700', fontSize: '13px' }}>Theme Applied!</span>
+              </div>
+              {elements.length === 0 ? (
+                <p style={{ color: '#F87171', fontSize: '12px', margin: 0 }}>No page elements to theme yet</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ color: '#9CA3AF', fontSize: '11px' }}>
+                    Theme: <strong style={{ color: '#F0F4FF' }}>{themeApplied.themeName || themeApplied.themeId}</strong>
+                  </div>
+                  <div style={{ color: '#9CA3AF', fontSize: '11px' }}>
+                    Elements updated: <strong style={{ color: '#F0F4FF' }}>{themeApplied.count}</strong>
+                  </div>
+                  <div style={{ color: '#9CA3AF', fontSize: '11px' }}>
+                    Page: <strong style={{ color: '#F0F4FF' }}>{derivedPages.find(p => p.id === themeApplied.pageId)?.name || themeApplied.pageId}</strong>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <Button 
             variant="outline" 
