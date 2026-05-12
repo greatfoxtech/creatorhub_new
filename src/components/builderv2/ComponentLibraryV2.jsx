@@ -35,6 +35,7 @@ const componentCategories = {
   premium: [
     { type: 'ButtonGroup', icon: MousePointer, label: 'Button Group' },
     { type: 'Card', icon: Layout, label: 'Card' },
+    { type: 'ProfileFeed', icon: MessageSquare, label: 'Profile Feed' },
     { type: 'Feed', icon: MessageSquare, label: 'Feed' },
     { type: 'Stories', icon: Film, label: 'Stories' },
     { type: 'Reels', icon: Video, label: 'Reels' },

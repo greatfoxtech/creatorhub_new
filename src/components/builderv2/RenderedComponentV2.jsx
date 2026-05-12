@@ -5,6 +5,7 @@ import HeadingWithMotion from './HeadingWithMotion';
 import TextWithMotion from './TextWithMotion';
 import FooterRenderer from './FooterRenderer';
 import HeaderRenderer from './HeaderRenderer';
+import ProfileFeed from './ProfileFeed';
 
 // Custom X (Twitter) Logo
 const XLogo = ({ size = 20, color = 'currentColor' }) => (
@@ -1821,6 +1822,10 @@ export default function RenderedComponentV2({ element, onSelect, themeTokens = n
         </button>
       </div>
     );
+  }
+
+  if (type === 'ProfileFeed') {
+    return <ProfileFeed props={props} themeTokens={themeTokens} />;
   }
 
   // Default fallback
