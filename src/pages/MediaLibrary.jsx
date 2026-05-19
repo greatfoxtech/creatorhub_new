@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Search, Upload, Grid3x3, List, FolderPlus, Play, Video as VideoIcon } from 'lucide-react';
+import { Search, Upload, Grid3x3, List, FolderPlus, Play, Video as VideoIcon, X, CheckCircle, Loader2 } from 'lucide-react';
 
 // Sample media from Posts, Stories, and Reels
 const SAMPLE_MEDIA = [
@@ -36,6 +36,8 @@ export default function MediaLibraryPage() {
   const [selectedFilter, setSelectedFilter] = useState('All');
   const [viewMode, setViewMode] = useState('grid');
   const [searchQuery, setSearchQuery] = useState('');
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const loadUser = async () => {
@@ -93,31 +95,16 @@ export default function MediaLibraryPage() {
                 </div>
               </DialogContent>
             </Dialog>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button className="gap-2 bg-[#4368D9] hover:bg-[#3a59b4]">
-                  <Upload className="w-4 h-4" />
-                  Upload
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-[#121726] border-gray-800 text-white">
-                <DialogHeader>
-                  <DialogTitle>Upload Media</DialogTitle>
-                </DialogHeader>
-                <div className="py-4">
-                  <div className="border-2 border-dashed border-gray-700 rounded-lg p-12 text-center mb-4">
-                    <Upload className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-                    <p className="text-gray-400 mb-2">Drag and drop files here</p>
-                    <p className="text-sm text-gray-500 mb-4">or</p>
-                    <input type="file" multiple className="hidden" id="file-upload" />
-                    <Button variant="outline" onClick={() => document.getElementById('file-upload').click()}>
-                      Browse Files
-                    </Button>
-                  </div>
-                  <Button className="w-full bg-[#4368D9] hover:bg-[#3a59b4]">Upload</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <Button className="gap-2 bg-[#4368D9] hover:bg-[#3a59b4]" onClick={() => setUploadOpen(true)}>
+              <Upload className="w-4 h-4" />
+              Upload
+            </Button>
+            <MediaUploadDialog
+              open={uploadOpen}
+              onOpenChange={setUploadOpen}
+              user={user}
+              onUploaded={() => queryClient.invalidateQueries({ queryKey: ['media'] })}
+            />
           </div>
         </div>
 
@@ -216,6 +203,140 @@ const MediaCard = ({ item }) => (
     </div>
   </Card>
 );
+
+const MediaUploadDialog = ({ open, onOpenChange, user, onUploaded }) => {
+  const fileInputRef = useRef(null);
+  const [files, setFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [results, setResults] = useState([]); // { name, status: 'done'|'error' }
+  const isDragging = useRef(false);
+
+  const addFiles = (newFiles) => {
+    const valid = Array.from(newFiles).filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'));
+    setFiles(prev => [...prev, ...valid]);
+  };
+
+  const removeFile = (idx) => setFiles(prev => prev.filter((_, i) => i !== idx));
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    addFiles(e.dataTransfer.files);
+  };
+
+  const handleUpload = async () => {
+    if (!files.length) return;
+    setUploading(true);
+    setResults([]);
+    const done = [];
+    for (const file of files) {
+      try {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        await base44.entities.Media.create({
+          user_id: user?.id || '',
+          file_url,
+          file_type: file.type.startsWith('video/') ? 'video' : 'image',
+          file_name: file.name,
+          file_size: file.size,
+          folder: 'uploads',
+          source_type: 'upload',
+        });
+        done.push({ name: file.name, status: 'done' });
+      } catch {
+        done.push({ name: file.name, status: 'error' });
+      }
+    }
+    setResults(done);
+    setUploading(false);
+    setFiles([]);
+    onUploaded();
+  };
+
+  const handleClose = (val) => {
+    if (!uploading) {
+      setFiles([]);
+      setResults([]);
+      onOpenChange(val);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="bg-[#121726] border-gray-800 text-white max-w-md">
+        <DialogHeader>
+          <DialogTitle>Upload Media</DialogTitle>
+        </DialogHeader>
+
+        {results.length > 0 ? (
+          <div className="py-2 space-y-2">
+            {results.map((r, i) => (
+              <div key={i} className="flex items-center gap-3 p-2 rounded-lg bg-[#1A1F2E]">
+                {r.status === 'done'
+                  ? <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+                  : <X className="w-4 h-4 text-red-400 flex-shrink-0" />}
+                <span className="text-sm truncate">{r.name}</span>
+                <span className={`text-xs ml-auto ${r.status === 'done' ? 'text-green-400' : 'text-red-400'}`}>
+                  {r.status === 'done' ? 'Uploaded' : 'Failed'}
+                </span>
+              </div>
+            ))}
+            <Button className="w-full mt-2 bg-[#4368D9] hover:bg-[#3a59b4]" onClick={() => handleClose(false)}>
+              Done
+            </Button>
+          </div>
+        ) : (
+          <div className="py-2 space-y-4">
+            {/* Drop zone */}
+            <div
+              className="border-2 border-dashed border-gray-700 rounded-lg p-10 text-center cursor-pointer hover:border-[#4368D9] transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDrop}
+            >
+              <Upload className="w-10 h-10 text-gray-500 mx-auto mb-3" />
+              <p className="text-gray-300 font-medium">Click or drag files here</p>
+              <p className="text-xs text-gray-500 mt-1">Images & videos supported</p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,video/*"
+                className="hidden"
+                onChange={(e) => addFiles(e.target.files)}
+              />
+            </div>
+
+            {/* File list */}
+            {files.length > 0 && (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {files.map((f, i) => (
+                  <div key={i} className="flex items-center gap-2 p-2 rounded bg-[#1A1F2E]">
+                    <span className="text-xs flex-1 truncate text-gray-300">{f.name}</span>
+                    <span className="text-xs text-gray-500">{(f.size / 1024).toFixed(0)} KB</span>
+                    <button onClick={() => removeFile(i)} className="text-gray-500 hover:text-red-400">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <Button
+              className="w-full bg-[#4368D9] hover:bg-[#3a59b4] disabled:opacity-50"
+              disabled={!files.length || uploading}
+              onClick={handleUpload}
+            >
+              {uploading ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading...</>
+              ) : (
+                `Upload ${files.length ? `(${files.length})` : ''}`
+              )}
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 const MediaListItem = ({ item }) => (
   <Card className="bg-[#121726] border-gray-800 hover:border-[#4368D9] transition-colors">
